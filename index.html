@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Benz Siangco | Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        cursor: none; /* Optional: hide default cursor if we want, but usually better to keep it for usability. Leaving default for now, just overlaying. */
+      }
+      
+      /* Re-enable default cursor, we just want the overlay effect */
+      body {
+        cursor: default;
+      }
+
+      /* Custom scrollbar for chat and carousel */
+      .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+      }
+      .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+      }
+
+      @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+      }
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
+      }
+
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in-up {
+        animation: fadeInUp 0.6s ease-out forwards;
+      }
+      
+      /* Click Animations */
+      @keyframes click-ripple {
+        0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+      }
+      .animate-click-ripple {
+        animation: click-ripple 0.6s cubic-bezier(0, 0, 0.2, 1) forwards;
+        width: 40px;
+        height: 40px;
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid rgba(34, 211, 238, 0.8); /* Cyan-400 */
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      @keyframes click-particle {
+        0% { transform: rotate(var(--angle)) translateX(0) scale(1); opacity: 1; }
+        100% { transform: rotate(var(--angle)) translateX(60px) scale(0); opacity: 0; }
+      }
+      .animate-click-particle {
+        animation: click-particle 0.6s cubic-bezier(0, 0, 0.2, 1) forwards;
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: rgba(96, 165, 250, 1); /* Blue-400 */
+        pointer-events: none;
+        z-index: 100;
+        margin-left: -3px; /* Center offset */
+        margin-top: -3px;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-950 text-slate-200 antialiased selection:bg-indigo-500 selection:text-white">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
