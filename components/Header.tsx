@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Menu, X } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,28 +21,71 @@ export const Header: React.FC = () => {
   ];
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 h-20 flex items-center ${isScrolled ? 'bg-slate-950/90 backdrop-blur-md border-b border-white/5' : 'bg-transparent'
-        }`}
-    >
-      <div className="container mx-auto px-6 relative flex items-center justify-end h-full">
-        <a href="#" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:left-0 md:translate-x-0 block w-24 h-24 md:w-32 md:h-32 hover:opacity-80 transition-opacity">
-          <img src="/benzsiangco.png" alt="Benz Siangco Logo" className="w-full h-full object-contain" />
+    <header className="fixed top-2 md:top-6 left-0 right-0 z-50 flex justify-center px-4 md:px-6 pointer-events-none">
+      <nav className={`flex items-center justify-between md:justify-start gap-4 md:gap-8 px-5 py-2 md:py-3 rounded-full border border-white/10 transition-all duration-700 w-full max-w-4xl pointer-events-auto ${isScrolled ? 'bg-slate-900/90 backdrop-blur-2xl shadow-2xl scale-[0.98]' : 'bg-slate-900/20 backdrop-blur-md'
+        }`}>
+        <a href="#hero" className="flex items-center md:pr-6 md:border-r border-white/10 shrink-0">
+          <div className="w-20 md:w-32 h-5 md:h-8 flex items-center justify-center transition-transform hover:scale-105 active:scale-95">
+            <img src="/benzsiangco.png" alt="Logo" className="w-full h-full object-contain" />
+          </div>
         </a>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex gap-8">
+        <div className="hidden md:flex gap-8 items-center">
           {navLinks.map((link) => (
             <a
               key={link.name}
               href={link.href}
-              className="text-slate-300 hover:text-white transition-colors text-sm font-medium hover:text-blue-400"
+              className="text-slate-400 hover:text-blue-400 transition-all text-[11px] font-black uppercase tracking-[0.3em]"
             >
               {link.name}
             </a>
           ))}
-        </nav>
-      </div>
+        </div>
+
+        {/* Desktop Action & Mobile Toggle */}
+        <div className="flex gap-2 items-center md:pl-6 md:border-l border-white/10 ml-auto">
+          <a
+            href="#contact"
+            className="hidden sm:inline-block text-[10px] font-black px-6 py-2.5 rounded-full bg-blue-600 hover:bg-white hover:text-blue-600 text-white transition-all shadow-xl shadow-blue-600/20 uppercase tracking-widest whitespace-nowrap"
+          >
+            Get Started
+          </a>
+
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-1.5 text-white hover:bg-white/5 rounded-full transition-colors"
+          >
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 bg-slate-950/98 backdrop-blur-3xl z-[60] md:hidden flex flex-col items-center justify-center gap-8 p-8 pointer-events-auto">
+          <button onClick={() => setMobileMenuOpen(false)} className="absolute top-6 right-6 text-white p-2">
+            <X size={24} />
+          </button>
+          {navLinks.map((link) => (
+            <a
+              key={link.name}
+              href={link.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-white text-2xl font-black uppercase tracking-[0.3em] hover:text-blue-500 transition-colors"
+            >
+              {link.name}
+            </a>
+          ))}
+          <a
+            href="#contact"
+            onClick={() => setMobileMenuOpen(false)}
+            className="w-full text-center text-xs font-black py-4 bg-blue-600 rounded-2xl text-white uppercase tracking-widest shadow-2xl shadow-blue-600/30 mt-6"
+          >
+            Start Your Project
+          </a>
+        </div>
+      )}
     </header>
   );
 };

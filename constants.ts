@@ -20,39 +20,38 @@ export const PORTFOLIO_DATA = {
   }
 };
 
-export const PROJECTS: Project[] = [
+export const PROJECTS = [
   {
     id: "1",
     title: "Devin Jatho Style",
-    description: "Motion Graphics focused edit with high-energy pacing.",
-    tags: ["After Effects", "Motion Graphics"],
-    imageUrl: "https://img.youtube.com/vi/v0cCXmy22AU/maxresdefault.jpg",
-    link: "#",
-    embedUrl: "https://www.youtube.com/embed/v0cCXmy22AU?si=jhjAhK_MiUAlsw-K&autoplay=1"
+    description: "Multi-layered transitions and high-energy pacing designed for maximum TikTok retention.",
+    category: "Short-Form",
+    thumbnail: "https://img.youtube.com/vi/v0cCXmy22AU/maxresdefault.jpg",
+    videoUrl: "https://www.youtube.com/watch?v=v0cCXmy22AU"
   },
   {
     id: "2",
-    title: "Coming Soon",
-    description: "New client project currently in post-production.",
-    tags: ["Premiere Pro", "Client Work"],
-    imageUrl: "https://picsum.photos/720/1280?grayscale&blur=2",
-    link: "#"
+    title: "Cinematic Reel",
+    description: "High-end cinematic color grading and sound design for professional personal brands.",
+    category: "Showcase",
+    thumbnail: "https://picsum.photos/720/1280?grayscale&blur=2",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
   },
   {
     id: "3",
-    title: "Coming Soon",
-    description: "New client project currently in post-production.",
-    tags: ["Shorts", "Editing"],
-    imageUrl: "https://picsum.photos/720/1280?grayscale&blur=2",
-    link: "#"
+    title: "VFX Breakdown",
+    description: "A look behind the scenes of complex 3D tracking and rotoscoping workflows.",
+    category: "VFX",
+    thumbnail: "https://picsum.photos/720/1280?grayscale&blur=1",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
   },
   {
     id: "4",
-    title: "Coming Soon",
-    description: "New client project currently in post-production.",
-    tags: ["Reels", "Content"],
-    imageUrl: "https://picsum.photos/720/1280?grayscale&blur=2",
-    link: "#"
+    title: "Retention Edit",
+    description: "Fast-paced typography and dynamic captions that keep viewers hooked.",
+    category: "Retention",
+    thumbnail: "https://picsum.photos/720/1280?grayscale&blur=3",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
   }
 ];
 

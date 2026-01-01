@@ -3,116 +3,134 @@ import { Play, X } from 'lucide-react';
 import { PROJECTS } from '../constants';
 
 export const Projects: React.FC = () => {
-  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useRef<HTMLElement>(null);
+  const [activeProject, setActiveProject] = useState<typeof PROJECTS[0] | null>(null);
+  const paralaxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => observer.disconnect();
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!paralaxRef.current) return;
+      const x = (e.clientX / window.innerWidth - 0.5) * 10;
+      const y = (e.clientY / window.innerHeight - 0.5) * 10;
+      paralaxRef.current.style.transform = `translate(${x}px, ${y}px)`;
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   return (
-    <section id="projects" ref={sectionRef} className="py-24 bg-slate-950 relative">
-      {/* Background Gradient */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-900/50 to-transparent"></div>
+    <section id="projects" className="py-20 md:py-24 bg-[#020617] relative">
+      <div ref={paralaxRef} className="parallax-bg opacity-20">
+        <div className="absolute top-1/2 left-0 w-64 md:w-96 h-64 md:h-96 bg-blue-600/10 rounded-full blur-[80px] md:blur-[100px]"></div>
+        <div className="absolute bottom-1/2 right-0 w-64 md:w-96 h-64 md:h-96 bg-cyan-600/10 rounded-full blur-[80px] md:blur-[100px]"></div>
+      </div>
 
-      <div className="container mx-auto px-6">
-        <div className={`text-center mb-12 max-w-3xl mx-auto transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">Recent Edits & Reels</h2>
-            <p className="text-slate-400 text-lg font-light mb-6">
-                A glimpse into my creative world.
-            </p>
+      <div className="container mx-auto px-6 relative z-10 w-full">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-6 text-center md:text-left">
+          <div className="animate-fade-in-up">
+            <span className="text-blue-500 font-black text-[9px] md:text-[10px] uppercase tracking-[0.4em] md:tracking-[0.5em] mb-4 block text-center md:text-left">PORTFOLIO</span>
+            <h2 className="text-[2.5rem] md:text-8xl font-bold text-white leading-[1.1] md:leading-[1] tracking-tighter uppercase mb-2 text-center md:text-left">
+              Selected <span className="instrument-serif text-blue-500 italic font-normal normal-case">Works</span>
+            </h2>
+          </div>
+          <p className="text-slate-500 text-[8px] md:text-[10px] font-bold uppercase tracking-widest max-w-[200px] leading-relaxed mx-auto md:mx-0 opacity-60 text-center md:text-left">
+            Engineering attention through cinematic rhythm.
+          </p>
         </div>
 
-        {/* Carousel on Mobile, Grid on Desktop */}
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-8 -mx-6 px-6 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 md:pb-0 md:overflow-visible md:mx-0 md:px-0 scrollbar-hide overscroll-x-contain">
-          {PROJECTS.map((project, index) => (
-            <div 
-              key={project.id} 
-              className={`flex-shrink-0 w-[85vw] sm:w-[60vw] md:w-auto snap-center group relative bg-slate-900 rounded-2xl overflow-hidden aspect-[9/16] border border-slate-800 hover:border-blue-500/50 transition-all duration-500 shadow-2xl hover:shadow-blue-500/10 ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}
-              style={{ animationDelay: `${index * 150}ms` }}
-            >
-              {activeVideoId === project.id && project.embedUrl ? (
-                <div className="absolute inset-0 bg-black z-20">
-                   <iframe 
-                      width="100%" 
-                      height="100%" 
-                      src={project.embedUrl} 
-                      title={project.title} 
-                      frameBorder="0" 
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      allowFullScreen
-                      className="w-full h-full object-cover"
-                   ></iframe>
-                   <button 
-                    onClick={() => setActiveVideoId(null)}
-                    className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-red-500 transition-colors backdrop-blur-sm"
-                   >
-                     <X className="w-4 h-4" />
-                   </button>
+        <div className="relative w-full overflow-hidden">
+          <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 w-full overflow-x-auto md:overflow-x-visible pb-12 md:pb-0 snap-x snap-mandatory scrollbar-hide scroll-smooth">
+            <div className="min-w-[5%] md:hidden shrink-0"></div>
+
+            {PROJECTS.map((project) => (
+              <div
+                key={project.id}
+                className="group relative min-w-[300px] sm:min-w-0 md:w-full aspect-[9/16] bg-slate-900 rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-blue-500/30 transition-all duration-700 shadow-2xl hover:shadow-blue-500/20 cursor-pointer snap-center will-change-transform"
+                onClick={() => setActiveProject(project)}
+              >
+                <div className="absolute inset-0 z-0 transition-transform duration-1000 group-hover:scale-110">
+                  <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent group-hover:via-slate-900/40" />
                 </div>
-              ) : (
-                <>
-                  {/* Thumbnail */}
-                  <img 
-                    src={project.imageUrl} 
-                    alt={project.title} 
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 filter brightness-[0.7] group-hover:brightness-100"
-                  />
-                  
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/90 opacity-90 transition-opacity" />
 
-                  {/* Play Button - Only if Embed URL exists */}
-                  {project.embedUrl && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 scale-90 group-hover:scale-100 cursor-pointer"
-                        onClick={() => setActiveVideoId(project.id)}
-                    >
-                        <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg group-active:scale-95 transition-transform hover:bg-blue-600/80 hover:border-blue-500/50">
-                            <Play className="w-6 h-6 text-white fill-current ml-1" />
-                        </div>
+                <div className="absolute inset-x-0 bottom-0 p-8 z-10 transform translate-y-2 md:translate-y-4 group-hover:translate-y-0 transition-transform duration-500 text-left">
+                  <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[8px] font-black uppercase tracking-widest mb-4 inline-block backdrop-blur-md">{project.category}</span>
+                  <h3 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight group-hover:text-blue-400 transition-colors uppercase tracking-tight">{project.title}</h3>
+
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-xl shadow-blue-600/30 group-hover:scale-110 transition-transform ripple">
+                      <Play className="w-5 h-5 fill-white" />
                     </div>
-                  )}
-
-                  {/* Info */}
-                  <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-2 group-hover:translate-y-0 transition-transform duration-500 pointer-events-none">
-                      <div className="flex gap-2 mb-2 flex-wrap">
-                          {project.tags.slice(0, 2).map((tag, i) => (
-                              <span key={i} className="text-[10px] font-bold uppercase tracking-wider text-blue-200 bg-blue-600/30 px-2 py-1 rounded-md border border-blue-400/20 backdrop-blur-sm">
-                                  {tag}
-                              </span>
-                          ))}
-                      </div>
-                      <h3 className="text-white font-bold text-lg leading-tight mb-1 group-hover:text-blue-100 transition-colors">{project.title}</h3>
-                      <p className="text-slate-400 text-xs line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 leading-relaxed">
-                          {project.description}
-                      </p>
+                    <div className="h-px flex-1 bg-white/10 group-hover:bg-blue-500/30 transition-colors" />
                   </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-        
-        <div className={`mt-8 text-center md:hidden transition-opacity duration-1000 delay-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-             <div className="text-slate-500 text-xs mb-4 animate-pulse">Swipe or scroll to explore →</div>
+                </div>
+              </div>
+            ))}
+
+            <div className="min-w-[5%] md:hidden shrink-0"></div>
+          </div>
+
+          <div className="absolute -bottom-2 font-black text-[7px] text-blue-500/40 uppercase tracking-[0.5em] w-full text-center md:hidden pointer-events-none">
+            Swipe to Discover
+          </div>
         </div>
       </div>
+
+      {activeProject && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/98 backdrop-blur-3xl animate-fade-in" onClick={() => setActiveProject(null)}></div>
+
+          <div className="relative w-full max-w-[400px] lg:max-w-6xl bg-[#0a101f] rounded-[2.5rem] md:rounded-[3.5rem] border border-white/10 shadow-3xl flex flex-col lg:flex-row p-2 animate-bounce-in max-h-[85vh] lg:max-h-[95vh] overflow-y-auto lg:overflow-hidden scrollbar-hide">
+
+            <button
+              onClick={() => setActiveProject(null)}
+              className="absolute top-4 right-4 z-[120] p-2.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 transition-all hover:scale-110 active:scale-90"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Video Container */}
+            <div className="relative w-full lg:w-1/2 aspect-[9/16] lg:aspect-video rounded-[2rem] lg:rounded-[2.5rem] overflow-hidden bg-black shadow-2xl flex-shrink-0">
+              <iframe
+                src={`https://www.youtube.com/embed/${activeProject.videoUrl.split('v=')[1]}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0`}
+                className="absolute inset-0 w-full h-full"
+                title={activeProject.title}
+                allowFullScreen
+              ></iframe>
+            </div>
+
+            {/* Content Container */}
+            <div className="p-6 md:p-12 lg:w-1/2 flex flex-col justify-start lg:justify-center text-center lg:text-left h-auto lg:h-full">
+              <div className="pb-4 lg:pb-0">
+                <span className="text-blue-500 font-black text-[9px] uppercase tracking-[0.4em] mb-4 block mt-6 lg:mt-0">GALLERY SHOWCASE</span>
+                <h2 className="text-2xl md:text-3xl lg:text-5xl font-bold text-white mb-6 leading-tight uppercase tracking-tight">{activeProject.title}</h2>
+                <div className="w-12 h-1 bg-blue-600 mb-8 mx-auto lg:mx-0 hidden lg:block"></div>
+
+                <p className="text-slate-400 text-xs md:text-sm lg:text-lg leading-relaxed mb-8 max-w-[280px] lg:max-w-none mx-auto lg:mx-0 opacity-70">
+                  {activeProject.description}
+                </p>
+
+                <div className="hidden lg:grid grid-cols-2 gap-4 mb-8">
+                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                    <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Category</span>
+                    <span className="text-sm font-bold text-white">{activeProject.category}</span>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                    <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Format</span>
+                    <span className="text-sm font-bold text-white">9:16 Vertical</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setActiveProject(null)}
+                className="w-full lg:w-auto py-4 px-8 rounded-2xl bg-white/[0.04] border border-white/10 text-white text-[10px] lg:text-xs font-black uppercase tracking-widest hover:bg-white/10 hover:border-blue-500/20 transition-all font-bold group mt-auto lg:mt-0"
+              >
+                Return to Gallery
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

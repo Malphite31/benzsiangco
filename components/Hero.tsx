@@ -1,139 +1,93 @@
-import React from 'react';
-import { PlayCircle } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Video, Scissors, Layers, Zap, ArrowDown, PlayCircle } from 'lucide-react';
 import { Button } from './Button';
-import { PORTFOLIO_DATA } from '../constants';
 
 export const Hero: React.FC = () => {
+  const paralaxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!paralaxRef.current) return;
+      const x = (e.clientX / window.innerWidth - 0.5) * 15;
+      const y = (e.clientY / window.innerHeight - 0.5) * 15;
+      paralaxRef.current.style.transform = `translate(${x}px, ${y}px)`;
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   return (
-    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-10 md:pt-24 md:pb-12 bg-slate-950">
-      {/* Background Elements */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] opacity-40"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[100px] opacity-30"></div>
+    <section id="hero" className="relative min-h-screen flex items-center justify-center bg-[#020617] overflow-hidden pt-32 md:pt-40">
+      {/* Background Decor */}
+      <div ref={paralaxRef} className="parallax-bg transition-transform duration-500 ease-out will-change-transform">
+        <div className="absolute inset-0 hero-grid" style={{
+          maskImage: 'linear-gradient(to bottom, black 20%, transparent 95%), radial-gradient(circle at center, black 40%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 20%, transparent 95%), radial-gradient(circle at center, black 40%, transparent 100%)',
+          WebkitMaskComposite: 'destination-in'
+        }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] md:w-[1500px] h-[800px] md:h-[1400px] bg-blue-600/[0.08] rounded-full blur-[120px] md:blur-[180px] pointer-events-none"></div>
 
-        {/* Animated Grid */}
-        <div className="absolute inset-0 bg-grid-pattern animate-grid opacity-50"></div>
-
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
+        {/* Corner Ambient Glows - Boosted Visibility */}
+        <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-blue-600/[0.15] rounded-full blur-[140px] pointer-events-none mix-blend-screen"></div>
+        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-500/[0.15] rounded-full blur-[140px] pointer-events-none mix-blend-screen"></div>
       </div>
 
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="flex flex-col-reverse lg:flex-row items-center gap-8 lg:gap-20">
-
-          {/* Text Content */}
-          <div className="flex-1 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 mb-4 md:mb-6 px-4 py-1.5 rounded-full border border-blue-500/20 bg-blue-950/30 backdrop-blur-md">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-              </span>
-              <span className="text-blue-200 text-xs font-bold tracking-wide uppercase">Open for Commissions</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight mb-4 md:mb-6 leading-tight text-white">
-              {PORTFOLIO_DATA.heroHeadline}
-            </h1>
-
-            <p className="text-base sm:text-lg text-slate-400 mb-6 md:mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-light">
-              {PORTFOLIO_DATA.heroSub}
-            </p>
-
-            <div className="flex flex-row flex-wrap items-center justify-center lg:justify-start gap-3 md:gap-4 mb-8 md:mb-12">
-              <Button
-                variant="primary"
-                onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                Contact Me
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })}
-                icon={<PlayCircle className="w-5 h-5" />}
-              >
-                View Latest Edits
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-center lg:justify-start gap-6 text-slate-500 font-medium text-sm">
-              <a href={PORTFOLIO_DATA.socials.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">
-                LinkedIn
-              </a>
-              <a href={PORTFOLIO_DATA.socials.tiktok} target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">
-                TikTok
-              </a>
-              <a href={`mailto:${PORTFOLIO_DATA.socials.email}`} className="hover:text-blue-400 transition-colors">
-                Email
-              </a>
-            </div>
-          </div>
-
-          {/* Hero Image */}
-          <div className="flex-1 relative mt-4 lg:mt-0">
-            <div className="relative w-60 h-60 sm:w-80 sm:h-80 md:w-[400px] md:h-[400px] lg:w-[480px] lg:h-[480px] mx-auto">
-              {/* Decorative shapes behind image */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-[2.5rem] opacity-20 blur-3xl animate-pulse"></div>
-              <div className="absolute inset-0 border border-blue-500/20 rounded-[2.5rem] rotate-6"></div>
-
-              <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden border-2 border-slate-800 shadow-2xl shadow-blue-500/20 z-10 bg-slate-900">
-                <img
-                  src="/hero-img.png"
-                  alt="Benz Siangco"
-                  className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
-                  loading="eager"
-                  draggable={false}
-                />
-              </div>
-
-              {/* Floating badges */}
-
-              {/* Premiere Pro - Bottom Left */}
-              <div className="absolute -bottom-4 -left-4 md:bottom-4 md:-left-8 bg-slate-900/90 backdrop-blur-xl p-2 md:p-4 rounded-xl border border-slate-800 shadow-xl shadow-blue-900/10 animate-float z-20">
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="bg-[#00005b]/80 p-1.5 md:p-2.5 rounded-lg text-blue-300 font-bold text-xs border border-blue-500/20">Pr</div>
-                  <div>
-                    <p className="text-white text-[10px] md:text-xs font-bold">Premiere Pro</p>
-                    <p className="text-slate-500 text-[8px] md:text-[10px]">Expert</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* After Effects - Top Right */}
-              <div className="absolute -top-4 -right-4 md:top-8 md:-right-8 bg-slate-900/90 backdrop-blur-xl p-2 md:p-4 rounded-xl border border-slate-800 shadow-xl shadow-blue-900/10 animate-float z-20" style={{ animationDelay: '1.5s' }}>
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="bg-[#00005b]/80 p-1.5 md:p-2.5 rounded-lg text-purple-300 font-bold text-xs border border-purple-500/20">Ae</div>
-                  <div>
-                    <p className="text-white text-[10px] md:text-xs font-bold">After Effects</p>
-                    <p className="text-slate-500 text-[8px] md:text-[10px]">VFX & Motion</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Photoshop - Bottom Right */}
-              <div className="absolute bottom-8 -right-6 md:bottom-20 md:-right-12 bg-slate-900/90 backdrop-blur-xl p-2 md:p-4 rounded-xl border border-slate-800 shadow-xl shadow-blue-900/10 animate-float z-20" style={{ animationDelay: '0.8s' }}>
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="bg-[#001e36]/80 p-1.5 md:p-2.5 rounded-lg text-cyan-300 font-bold text-xs border border-cyan-500/20">Ps</div>
-                  <div>
-                    <p className="text-white text-[10px] md:text-xs font-bold">Photoshop</p>
-                    <p className="text-slate-500 text-[8px] md:text-[10px]">Thumbnails</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Illustrator - Top Left */}
-              <div className="absolute top-8 -left-6 md:top-20 md:-left-12 bg-slate-900/90 backdrop-blur-xl p-2 md:p-4 rounded-xl border border-slate-800 shadow-xl shadow-blue-900/10 animate-float z-20" style={{ animationDelay: '2.2s' }}>
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="bg-[#261000]/80 p-1.5 md:p-2.5 rounded-lg text-orange-400 font-bold text-xs border border-orange-500/20">Ai</div>
-                  <div>
-                    <p className="text-white text-[10px] md:text-xs font-bold">Illustrator</p>
-                    <p className="text-slate-500 text-[8px] md:text-[10px]">Vector Assets</p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
+      <div className="container mx-auto px-6 relative z-10 flex flex-col items-center text-center">
+        {/* Top Badge */}
+        <div className="inline-flex items-center gap-2 mb-8 md:mb-10 px-5 py-2.5 rounded-full border border-blue-500/20 bg-blue-500/5 backdrop-blur-xl animate-apple-reveal shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+          <Zap className="w-3 h-3 text-blue-400 fill-blue-400" />
+          <span className="text-blue-300 text-[8px] md:text-[10px] font-black tracking-[0.5em] uppercase">Ready for Capture</span>
         </div>
+
+        {/* Premium Headline */}
+        <h1 className="text-[3.2rem] sm:text-6xl md:text-[7.5rem] lg:text-[100px] font-bold tracking-tight mb-8 md:mb-10 leading-[0.9] text-white animate-apple-reveal delay-200 group pointer-events-none">
+          Editing Videos <br className="hidden md:block" />
+          that Go <span className="instrument-serif text-blue-500 italic font-normal normal-case group-hover:text-blue-400 transition-colors duration-700">Viral</span>
+        </h1>
+
+        {/* Cinematic Subtext */}
+        <p className="text-slate-400 text-sm md:text-xl lg:text-2xl font-medium max-w-xl md:max-w-3xl mb-12 md:mb-16 opacity-60 leading-relaxed mx-auto px-6 animate-apple-reveal delay-300">
+          Transforming raw footage into scroll-stopping stories. I engineer <span className="text-white">attention and retention</span> through high-end cinematic editing.
+        </p>
+
+        {/* Action Buttons - Size Fixed */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-8 mb-20 md:mb-24 w-full sm:w-auto px-8 sm:px-0 animate-apple-reveal delay-500">
+          <Button
+            variant="primary"
+            className="w-full sm:w-auto"
+            onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            START YOUR PROJECT
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            icon={<PlayCircle size={18} className="text-blue-500" />}
+            onClick={() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            EXPLORE WORKS
+          </Button>
+        </div>
+
+        {/* Subtle Brand Elements */}
+        <div className="flex items-center gap-10 md:gap-20 text-slate-800 opacity-30 mt-auto pb-10 animate-apple-reveal delay-700">
+          <div className="group transition-all hover:opacity-100 hover:scale-110">
+            <Video size={18} className="md:w-8 md:h-8 transition-colors group-hover:text-blue-500" />
+          </div>
+          <div className="group transition-all hover:opacity-100 hover:scale-110">
+            <Scissors size={18} className="md:w-8 md:h-8 transition-colors group-hover:text-blue-500" />
+          </div>
+          <div className="group transition-all hover:opacity-100 hover:scale-110">
+            <Layers size={18} className="md:w-8 md:h-8 transition-colors group-hover:text-blue-500" />
+          </div>
+          <div className="group transition-all hover:opacity-100 hover:scale-110">
+            <Zap size={18} className="md:w-8 md:h-8 transition-colors group-hover:text-blue-500" />
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce opacity-20 hidden lg:block">
+        <ArrowDown className="w-8 h-8 text-white" />
       </div>
     </section>
   );
