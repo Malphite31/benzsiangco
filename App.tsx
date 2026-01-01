@@ -34,6 +34,32 @@ function App() {
     };
 
     window.addEventListener('keydown', handleKeyDown);
+
+    // Track Site Visit
+    const logVisit = async () => {
+      // Simple visitor tracking
+      let visitorId = localStorage.getItem('v_id');
+      if (!visitorId) {
+        visitorId = crypto.randomUUID();
+        localStorage.setItem('v_id', visitorId);
+      }
+
+      try {
+        // Optional: Get rough location from public IP API (client-side only demo) or just log
+        // For now, simpler is better to avoid blocking
+        const { supabase } = await import('./lib/supabase');
+        await supabase.from('site_visits').insert([{
+          visitor_id: visitorId,
+          page_url: window.location.pathname,
+          location: 'Unknown' // Ideally use an edge function for IP geoloc
+        }]);
+      } catch (e) {
+        console.warn('Analytics error', e);
+      }
+    };
+
+    logVisit();
+
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 

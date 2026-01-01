@@ -200,28 +200,35 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
             video.muted = true;
             video.playsInline = true;
             video.crossOrigin = "anonymous";
-            video.currentTime = 1; // Capture at 1s
+            video.autoplay = true; // helps force loading in some browsers
 
             video.onloadeddata = () => {
-                // Wait for seek if needed, usually onseeked covers it
+                video.currentTime = 1; // Seek to 1s
             };
 
             video.onseeked = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(video, 0, 0);
+                // Add a small delay to ensure the frame is actually rendered
+                setTimeout(() => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        const thumbFile = new File([blob], `thumb_${Date.now()}.jpg`, { type: 'image/jpeg' });
-                        resolve(thumbFile);
-                    } else {
-                        resolve(null);
-                    }
-                    URL.revokeObjectURL(video.src);
-                }, 'image/jpeg', 0.8);
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            const thumbFile = new File([blob], `thumb_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                            resolve(thumbFile);
+                        } else {
+                            resolve(null);
+                        }
+                        // Cleanup
+                        video.pause();
+                        video.removeAttribute('src');
+                        video.load();
+                        URL.revokeObjectURL(video.src);
+                    }, 'image/jpeg', 0.85);
+                }, 300); // 300ms delay to prevent black frame
             };
 
             video.onerror = () => {
