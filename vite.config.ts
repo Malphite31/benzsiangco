@@ -14,6 +14,8 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_R2_ENDPOINT,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/r2-proxy/, ''),
+          timeout: 0, // Disable timeout for large uploads
+          proxyTimeout: 0, // Disable proxy timeout
         }
       }
     },

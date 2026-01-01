@@ -147,11 +147,13 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
         try {
             const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
 
+            const fileType = file.type || 'application/octet-stream';
+
             // 1. Prepare Command
             const command = new PutObjectCommand({
                 Bucket: R2_BUCKET,
                 Key: fileName,
-                ContentType: file.type,
+                ContentType: fileType,
             });
 
             // 2. Generate Pre-Signed URL
@@ -168,7 +170,8 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                 uploadXhrRef.current = xhr;
 
                 xhr.open('PUT', proxyUrl, true);
-                xhr.setRequestHeader('Content-Type', file.type);
+                xhr.setRequestHeader('Content-Type', fileType);
+                xhr.timeout = 0; // Disable client-side timeout
 
                 const startTime = Date.now();
 
