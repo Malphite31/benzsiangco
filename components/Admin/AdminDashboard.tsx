@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { r2Client, R2_BUCKET, R2_PUBLIC_URL } from '../../lib/r2';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { X, Upload, Save, Trash2, Plus, GripVertical, LogOut, Image, Video, FileText, Users, TrendingUp, BarChart2, Activity } from 'lucide-react';
 import { Button } from '../Button';
 
@@ -37,6 +37,9 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
     const [editingSkill, setEditingSkill] = useState<any | null>(null); // New Skill Edit State
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadSpeed, setUploadSpeed] = useState('');
+    const [uploadEta, setUploadEta] = useState('');
+    const uploadXhrRef = useRef<XMLHttpRequest | null>(null);
 
     // Feedback & Confirm State
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -137,7 +140,10 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
     };
 
     const handleFileUpload = async (file: File): Promise<string> => {
-        setUploadProgress(10); // Start fake progress
+        setUploadProgress(1);
+        setUploadSpeed('Starting...');
+        setUploadEta('...');
+
         try {
             const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
 
@@ -148,25 +154,48 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                 ContentType: file.type,
             });
 
-            // 2. Generate Pre-Signed URL to authorize the upload
+            // 2. Generate Pre-Signed URL
             const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
             const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 600 });
 
-            // 3. Route through Local Proxy to bypass CORS
-            // Transform 'https://<endpoint>/bucket/key?sig' -> '/r2-proxy/bucket/key?sig'
+            // 3. Route through Local Proxy
             const urlObj = new URL(signedUrl);
             const proxyUrl = `/r2-proxy${urlObj.pathname}${urlObj.search}`;
 
-            // 4. Perform Upload via XHR for Progress Tracking
+            // 4. Perform Upload via XHR
             await new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
+                uploadXhrRef.current = xhr;
+
                 xhr.open('PUT', proxyUrl, true);
                 xhr.setRequestHeader('Content-Type', file.type);
+
+                const startTime = Date.now();
 
                 xhr.upload.onprogress = (event) => {
                     if (event.lengthComputable) {
                         const percentComplete = Math.round((event.loaded / event.total) * 100);
                         setUploadProgress(percentComplete);
+
+                        // Calculate Speed & ETA
+                        const now = Date.now();
+                        const elapsed = (now - startTime) / 1000; // seconds
+
+                        if (elapsed > 0.5) {
+                            const speed = event.loaded / elapsed; // bytes/sec
+                            const remaining = event.total - event.loaded;
+                            const eta = remaining / speed;
+
+                            // Format Speed
+                            let speedStr = '';
+                            if (speed > 1024 * 1024) speedStr = `${(speed / (1024 * 1024)).toFixed(1)} MB/s`;
+                            else speedStr = `${(speed / 1024).toFixed(1)} KB/s`;
+                            setUploadSpeed(speedStr);
+
+                            // Format ETA
+                            if (eta < 60) setUploadEta(`${Math.ceil(eta)}s remaining`);
+                            else setUploadEta(`${Math.ceil(eta / 60)}m remaining`);
+                        }
                     }
                 };
 
@@ -178,17 +207,29 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                     }
                 };
 
+                xhr.onabort = () => reject(new Error('Cancelled by user'));
                 xhr.onerror = () => reject(new Error('Network upload failed'));
                 xhr.send(file);
             });
 
             const url = `${R2_PUBLIC_URL}/${fileName}`;
-            setTimeout(() => setUploadProgress(0), 500);
+            setUploadProgress(100);
+            setTimeout(() => {
+                setUploadProgress(0);
+                setUploadSpeed('');
+                setUploadEta('');
+            }, 500);
+            uploadXhrRef.current = null;
             return url;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Upload failed:', error);
-            showFeedback('error', 'Upload failed: ' + (error as any).message);
+            if (error.message !== 'Cancelled by user') {
+                showFeedback('error', 'Upload failed: ' + error.message);
+            }
             setUploadProgress(0);
+            setUploadSpeed('');
+            setUploadEta('');
+            uploadXhrRef.current = null;
             return '';
         }
     };
@@ -300,13 +341,42 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
     const confirmDelete = (id: number) => {
         setConfirmDialog({
-            message: 'Are you sure you want to delete this project?',
+            message: 'Are you sure you want to delete this project? This will permanently remove the project and its associated files.',
             onConfirm: async () => {
-                const { error } = await supabase.from('projects').delete().eq('id', id);
-                if (error) showFeedback('error', error.message);
-                else {
+                try {
+                    // 1. Get Project Details to find files
+                    const projectToDelete = projects.find(p => p.id === id);
+                    if (projectToDelete) {
+                        // Helper to delete from R2
+                        const deleteFromR2 = async (url: string) => {
+                            if (url && url.includes(R2_PUBLIC_URL)) {
+                                try {
+                                    const key = url.replace(`${R2_PUBLIC_URL}/`, '');
+                                    const command = new DeleteObjectCommand({
+                                        Bucket: R2_BUCKET,
+                                        Key: key,
+                                    });
+                                    await r2Client.send(command);
+                                    console.log('Deleted R2 file:', key);
+                                } catch (err) {
+                                    console.error('Failed to delete R2 file:', err);
+                                }
+                            }
+                        };
+
+                        // Delete Video & Thumbnail
+                        await deleteFromR2(projectToDelete.video_url);
+                        await deleteFromR2(projectToDelete.thumbnail_url);
+                    }
+
+                    // 2. Delete from DB
+                    const { error } = await supabase.from('projects').delete().eq('id', id);
+                    if (error) throw error;
+
                     fetchProjects();
-                    showFeedback('success', 'Project deleted');
+                    showFeedback('success', 'Project and files deleted');
+                } catch (error: any) {
+                    showFeedback('error', error.message);
                 }
                 setConfirmDialog(null);
             }
@@ -619,12 +689,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                         </div>
                         <div className="space-y-4">
                             <div className="grid md:grid-cols-2 gap-6 relative">
-                                {uploadProgress > 0 && (
-                                    <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center text-white flex-col">
-                                        <div className="text-2xl font-bold mb-2">{uploadProgress}%</div>
-                                        <div>Uploading...</div>
-                                    </div>
-                                )}
+
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Thumbnail</label>
                                     <div className="aspect-video bg-black/40 border-2 border-dashed border-white/10 rounded-xl flex items-center justify-center cursor-pointer relative overflow-hidden group"
@@ -800,6 +865,34 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                             <Button variant="outline" onClick={() => setConfirmDialog(null)}>Cancel</Button>
                             <Button variant="primary" onClick={confirmDialog.onConfirm}>Confirm</Button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Global Upload Overlay */}
+            {uploadProgress > 0 && (
+                <div className="absolute inset-0 z-[60] bg-black/90 backdrop-blur-md flex items-center justify-center text-white flex-col animate-in fade-in duration-300">
+                    <div className="w-64 space-y-4 text-center">
+                        <div className="relative w-24 h-24 mx-auto">
+                            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#1e293b" strokeWidth="3" />
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#3b82f6" strokeWidth="3" strokeDasharray={`${uploadProgress}, 100`} className="transition-all duration-300 ease-out" />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center font-bold text-xl">{uploadProgress}%</div>
+                        </div>
+
+                        <div>
+                            <h4 className="font-bold text-lg mb-1">Uploading...</h4>
+                            <div className="text-xs text-slate-400 flex items-center justify-center gap-2 font-mono">
+                                <span>{uploadSpeed}</span>
+                                <span>•</span>
+                                <span>{uploadEta}</span>
+                            </div>
+                        </div>
+
+                        <Button variant="outline" className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300" onClick={() => uploadXhrRef.current?.abort()}>
+                            Cancel Upload
+                        </Button>
                     </div>
                 </div>
             )}
