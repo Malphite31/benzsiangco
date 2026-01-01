@@ -1,12 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, X } from 'lucide-react';
 import { PROJECTS } from '../constants';
+import { supabase } from '../lib/supabase';
 
 export const Projects: React.FC = () => {
   const [activeProject, setActiveProject] = useState<typeof PROJECTS[0] | null>(null);
+  const [projects, setProjects] = useState(PROJECTS);
   const paralaxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const fetchProjects = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        setProjects(data as any);
+      }
+    };
+    fetchProjects();
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!paralaxRef.current) return;
       const x = (e.clientX / window.innerWidth - 0.5) * 10;
@@ -41,14 +55,14 @@ export const Projects: React.FC = () => {
           <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 w-full overflow-x-auto md:overflow-x-visible pb-12 md:pb-0 snap-x snap-mandatory scrollbar-hide scroll-smooth">
             <div className="min-w-[5%] md:hidden shrink-0"></div>
 
-            {PROJECTS.map((project) => (
+            {projects.map((project) => (
               <div
                 key={project.id}
                 className="group relative min-w-[300px] sm:min-w-0 md:w-full aspect-[9/16] bg-slate-900 rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-blue-500/30 transition-all duration-700 shadow-2xl hover:shadow-blue-500/20 cursor-pointer snap-center will-change-transform"
                 onClick={() => setActiveProject(project)}
               >
                 <div className="absolute inset-0 z-0 transition-transform duration-1000 group-hover:scale-110">
-                  <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover" />
+                  <img src={(project as any).thumbnail_url || project.thumbnail} alt={project.title} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent group-hover:via-slate-900/40" />
                 </div>
 
@@ -90,12 +104,31 @@ export const Projects: React.FC = () => {
 
             {/* Video Container */}
             <div className="relative w-full lg:w-1/2 aspect-[9/16] lg:aspect-video rounded-[2rem] lg:rounded-[2.5rem] overflow-hidden bg-black shadow-2xl flex-shrink-0">
-              <iframe
-                src={`https://www.youtube.com/embed/${activeProject.videoUrl.split('v=')[1]}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0`}
-                className="absolute inset-0 w-full h-full"
-                title={activeProject.title}
-                allowFullScreen
-              ></iframe>
+              {(() => {
+                const url = (activeProject as any).video_url || activeProject.videoUrl;
+                const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+
+                if (isYoutube) {
+                  return (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${url.split('v=')[1]}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0`}
+                      className="absolute inset-0 w-full h-full"
+                      title={activeProject.title}
+                      allowFullScreen
+                    ></iframe>
+                  );
+                } else {
+                  return (
+                    <video
+                      src={url}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      controls
+                      autoPlay
+                      playsInline
+                    />
+                  );
+                }
+              })()}
             </div>
 
             {/* Content Container */}
