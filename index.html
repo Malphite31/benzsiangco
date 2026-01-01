@@ -6,10 +6,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Benz Siangco | Portfolio</title>
   <link rel="icon" type="image/png" href="/webicon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
     rel="stylesheet">
-
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['"Instrument Serif"', 'serif'],
+          },
+          animation: {
+            'grid-scroll': 'grid-scroll 20s linear infinite',
+            'float': 'float 3s ease-in-out infinite',
+          },
+        },
+      },
+    }
+  </script>
   <style>
     body {
       font-family: 'Inter', sans-serif;

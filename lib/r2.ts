@@ -16,8 +16,6 @@ export const r2Client = new S3Client({
         secretAccessKey: secretAccessKey || '',
     },
     forcePathStyle: true, // Crucial for some R2 setups to avoid DNS errors
-    requestChecksumCalculation: 'WHEN_REQUIRED',
-    responseChecksumValidation: 'WHEN_REQUIRED',
 });
 
 export const R2_BUCKET = import.meta.env.VITE_R2_BUCKET_NAME;
