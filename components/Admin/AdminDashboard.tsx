@@ -5,7 +5,8 @@ import { r2Client, R2_BUCKET, R2_PUBLIC_URL } from '../../lib/r2';
 import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { X, Upload, Save, Trash2, Plus, GripVertical, LogOut, Image, Video, FileText, Users, TrendingUp, BarChart2, Activity, Edit, UploadCloud, User, Share2, Mail, Globe, Smartphone, Tablet, Monitor, MapPin, Cpu } from 'lucide-react';
 import { Button } from '../Button';
-import { PORTFOLIO_DATA } from '../../constants'; // Assuming constants.ts exists and contains PORTFOLIO_DATA
+import { PORTFOLIO_DATA } from '../../constants';
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, YAxis, CartesianGrid } from 'recharts';
 
 interface Project {
     id?: number;
@@ -28,6 +29,7 @@ const Label = ({ children, className = '' }: any) => (
 export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     // State
     const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'skills' | 'profile'>('overview');
+    const [dateRange, setDateRange] = useState(7);
     const [navVisible, setNavVisible] = useState(true);
     const [loading, setLoading] = useState(false); // Added loading state
 
@@ -175,15 +177,15 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
             const { count: visitors } = await supabase.from('site_visits').select('*', { count: 'exact', head: true });
             const { count: views } = await supabase.from('project_views').select('*', { count: 'exact', head: true });
 
-            // 2. Trend Data (Last 7 Days)
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            sevenDaysAgo.setHours(0, 0, 0, 0);
+            // 2. Trend Data (Dynamic Date Range)
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - dateRange);
+            startDate.setHours(0, 0, 0, 0);
 
             const { data: visitsData } = await supabase
                 .from('site_visits')
                 .select('visitor_id, created_at, user_agent, page, os, country, city')
-                .gte('created_at', sevenDaysAgo.toISOString())
+                .gte('created_at', startDate.toISOString())
                 .order('created_at', { ascending: false });
 
             // Process Visits
@@ -192,18 +194,16 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
             // Normalize Today
             const today = new Date();
-            // Use local date parts to avoid UTC shift issues when generating keys for "local" days
-            // But for consistency, we will just use the simple YYYY-MM-DD string from the Date object methods
 
             // Init Map (Key: YYYY-MM-DD)
             const daysMap = new Map<string, { count: number, label: string }>();
-            for (let i = 0; i < 7; i++) {
+            for (let i = 0; i < dateRange; i++) {
                 const d = new Date();
                 d.setDate(today.getDate() - i);
                 const key = d.toLocaleDateString('sv-SE'); // YYYY-MM-DD format
                 daysMap.set(key, {
                     count: 0,
-                    label: d.toLocaleDateString('en-US', { weekday: 'short' })
+                    label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) // Changed format for longer ranges
                 });
             }
 
@@ -227,9 +227,8 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
             // Format Chart Data
             const chartData = [];
 
-            // Reconstruct in correct order (Today is at index 0 in loop, so iterate backwards or reverse after)
-            // It's safer to iterate our intended range again to guarantee order
-            for (let i = 0; i < 7; i++) {
+            // Reconstruct in correct order
+            for (let i = 0; i < dateRange; i++) {
                 const d = new Date();
                 d.setDate(today.getDate() - i);
                 const key = d.toLocaleDateString('sv-SE');
@@ -287,9 +286,8 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                 recentVisits
             });
         } catch (e) {
-            console.error('Error fetching stats:', e);
         }
-    }, []);
+    }, [dateRange]);
 
     useEffect(() => {
         // Initial fetch
@@ -924,24 +922,73 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 {/* Activity Chart */}
-                                <div className="lg:col-span-2 bg-slate-800/40 p-6 rounded-3xl border border-white/5">
-                                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><Activity size={20} className="text-blue-500" /> Traffic Trend (Last 7 Days)</h3>
-                                    <div className="h-48 flex items-end justify-between gap-2 md:gap-4 px-2">
-                                        {stats.chartData.map((d, i) => (
-                                            <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                                                <div className="relative w-full bg-slate-700/30 rounded-t-lg overflow-hidden flex items-end transition-all hover:bg-slate-700/50" style={{ height: '100%' }}>
-                                                    <div
-                                                        className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-1000 ease-out group-hover:to-blue-300"
-                                                        style={{ height: `${d.height}%`, minHeight: '4px' }}
-                                                    ></div>
-                                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 z-10">
-                                                        {d.count} visits
-                                                    </div>
-                                                </div>
-                                                <span className="text-xs text-slate-500 font-bold uppercase">{d.day}</span>
+                                {/* Activity Chart - Recharts Implementation */}
+                                <div className="lg:col-span-2 bg-slate-800/40 p-6 rounded-3xl border border-white/5 relative overflow-hidden">
+                                    <div className="flex justify-between items-center mb-6 relative z-10">
+                                        <h3 className="font-bold text-lg flex items-center gap-2">
+                                            <Activity size={20} className="text-blue-500" />
+                                            Traffic Trend
+                                        </h3>
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex bg-slate-900/50 rounded-lg p-1 border border-white/5">
+                                                {[7, 30, 90].map((days) => (
+                                                    <button
+                                                        key={days}
+                                                        onClick={() => setDateRange(days)}
+                                                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${dateRange === days ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                                                    >
+                                                        {days}D
+                                                    </button>
+                                                ))}
                                             </div>
-                                        ))}
-                                        {stats.chartData.length === 0 && <div className="w-full text-center text-slate-500">No recent data</div>}
+                                            <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                                </span>
+                                                <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Live</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="h-64 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                <defs>
+                                                    <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                                <XAxis
+                                                    dataKey="day"
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 'bold' }}
+                                                    dy={10}
+                                                />
+                                                <YAxis
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fill: '#64748b', fontSize: 12 }}
+                                                />
+                                                <Tooltip
+                                                    contentStyle={{ backgroundColor: '#0f172a', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
+                                                    itemStyle={{ color: '#60a5fa' }}
+                                                    cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                                />
+                                                <Area
+                                                    type="monotone"
+                                                    dataKey="count"
+                                                    stroke="#3b82f6"
+                                                    strokeWidth={3}
+                                                    fillOpacity={1}
+                                                    fill="url(#colorVisits)"
+                                                    animationDuration={1500}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
                                     </div>
                                 </div>
 

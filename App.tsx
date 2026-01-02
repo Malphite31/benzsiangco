@@ -110,13 +110,15 @@ function App() {
     logVisit();
 
     // Console Signature
-    const styleTitle = 'color: #3b82f6; font-size: 40px; font-weight: bold; text-shadow: 2px 2px 0px #000; font-family: "Inter", sans-serif;';
-    const styleSubtitle = 'color: #94a3b8; font-size: 14px; font-family: "Inter", sans-serif; margin-bottom: 5px;';
-    const styleWarning = 'background: #ef4444; color: white; padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 12px;';
+    // Console Signature
+    const styleTitle = 'color: #e0f2fe; font-size: 60px; font-weight: 900; font-family: sans-serif; text-shadow: 1px 1px 0 #0ea5e9, 2px 2px 0 #0284c7, 3px 3px 0 #0369a1, 4px 4px 0 #075985, 5px 5px 0 #0c4a6e; margin-bottom: 10px;';
+    const styleSubtitle = 'color: #94a3b8; font-size: 14px; font-family: "Courier New", monospace; letter-spacing: 2px; padding: 4px 0; font-weight: bold;';
+    const styleWarning = 'background: #0f172a; color: #fbbf24; border: 1px solid #fbbf24; padding: 12px; border-radius: 4px; font-family: sans-serif; font-size: 12px; margin-top: 16px;';
 
-    console.log('%cBenz Siangco', styleTitle);
-    console.log('%cCreative Editor & VibeCode Developer', styleSubtitle);
-    console.log('%c⚠️ STOP! If someone told you to paste code here, you are likely being scammed.', styleWarning);
+    console.clear();
+    console.log('%cBENZ SIANGCO', styleTitle);
+    console.log('%cCREATIVE EDITOR & FULL STACK DEVELOPER', styleSubtitle);
+    console.log('%c⚠️ NOTE: This console is intended for developers. Pasting unknown code here may compromise your data.', styleWarning);
 
 
     return () => window.removeEventListener('keydown', handleKeyDown);
