@@ -192,14 +192,15 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
             // Normalize Today
             const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // Use local date parts to avoid UTC shift issues when generating keys for "local" days
+            // But for consistency, we will just use the simple YYYY-MM-DD string from the Date object methods
 
-            // Init Map (Key: local date string YYYY-MM-DD)
+            // Init Map (Key: YYYY-MM-DD)
             const daysMap = new Map<string, { count: number, label: string }>();
             for (let i = 0; i < 7; i++) {
-                const d = new Date(today);
-                d.setDate(d.getDate() - i);
-                const key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+                const d = new Date();
+                d.setDate(today.getDate() - i);
+                const key = d.toLocaleDateString('sv-SE'); // YYYY-MM-DD format
                 daysMap.set(key, {
                     count: 0,
                     label: d.toLocaleDateString('en-US', { weekday: 'short' })
@@ -211,12 +212,11 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
                 // Normalize Visit Date
                 const vDate = new Date(v.created_at);
-                const key = vDate.getFullYear() + '-' + (vDate.getMonth() + 1) + '-' + vDate.getDate();
+                const key = vDate.toLocaleDateString('sv-SE'); // YYYY-MM-DD
 
                 // Check for "Today" match
                 const tDate = new Date();
-                const tKey = tDate.getFullYear() + '-' + (tDate.getMonth() + 1) + '-' + tDate.getDate();
-                if (key === tKey) todayCount++;
+                if (key === tDate.toLocaleDateString('sv-SE')) todayCount++;
 
                 const entry = daysMap.get(key);
                 if (entry) {
@@ -226,10 +226,13 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
             // Format Chart Data
             const chartData = [];
+
+            // Reconstruct in correct order (Today is at index 0 in loop, so iterate backwards or reverse after)
+            // It's safer to iterate our intended range again to guarantee order
             for (let i = 0; i < 7; i++) {
-                const d = new Date(today);
-                d.setDate(d.getDate() - i);
-                const key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+                const d = new Date();
+                d.setDate(today.getDate() - i);
+                const key = d.toLocaleDateString('sv-SE');
                 const entry = daysMap.get(key);
                 if (entry) {
                     chartData.push({
@@ -239,7 +242,9 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                     });
                 }
             }
-            chartData.reverse();
+            chartData.reverse(); // Oldest -> Newest
+
+
 
             const maxVal = Math.max(...chartData.map(d => d.count), 1);
             chartData.forEach(d => d.height = Math.round((d.count / maxVal) * 100));
