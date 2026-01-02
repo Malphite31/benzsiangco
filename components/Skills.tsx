@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Cpu, Layers, Volume2, Sparkles } from 'lucide-react';
+import { Cpu, Layers, Volume2, Sparkles, Film } from 'lucide-react';
 import { SKILLS } from '../constants';
 
 export const Skills: React.FC = () => {
@@ -45,6 +45,10 @@ export const Skills: React.FC = () => {
         return { icon: 'Ps', color: 'text-[#31a8ff]', glow: 'shadow-[0_0_30px_-5px_rgba(49,168,255,0.3)]', border: 'border-[#31a8ff]/20' };
       case 'illustrator':
         return { icon: 'Ai', color: 'text-[#ff9a00]', glow: 'shadow-[0_0_30px_-5px_rgba(255,154,0,0.3)]', border: 'border-[#ff9a00]/20' };
+      case 'motion graphics':
+        return { icon: <Film size={28} />, color: 'text-[#ff4757]', glow: 'shadow-[0_0_30px_-5px_rgba(255,71,87,0.3)]', border: 'border-[#ff4757]/20' };
+      case 'sound design':
+        return { icon: <Volume2 size={28} />, color: 'text-[#2ed573]', glow: 'shadow-[0_0_30px_-5px_rgba(46,213,115,0.3)]', border: 'border-[#2ed573]/20' };
       default:
         return { icon: <Cpu size={20} />, color: 'text-blue-400', glow: 'shadow-[0_0_30px_-5px_rgba(96,165,250,0.3)]', border: 'border-blue-400/20' };
     }
