@@ -176,6 +176,21 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
         // Responsive Sidebar: Auto-hide on mobile
         if (window.innerWidth < 1024) setNavVisible(false);
+
+        // Realtime Subscription
+        const channel = supabase
+            .channel('admin-dashboard')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'site_visits' }, () => {
+                fetchStats();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_views' }, () => {
+                fetchStats();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     const fetchProjects = async () => {
@@ -209,31 +224,49 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
             // Process Visits
             const uniqueSet = new Set();
             let todayCount = 0;
-            const daysMap: Record<string, number> = {};
             const todayStr = new Date().toDateString();
+
+            // Dictionary keyed by "Date String" (e.g. "Fri Jan 02 2026")
+            const daysMap: Record<string, { count: number, label: string }> = {};
 
             // Init last 7 days keys
             for (let i = 0; i < 7; i++) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
-                daysMap[d.toLocaleDateString('en-US', { weekday: 'short' })] = 0;
+                const dateKey = d.toDateString();
+                const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
+                daysMap[dateKey] = { count: 0, label: dayLabel };
             }
 
             visitsData?.forEach(v => {
                 uniqueSet.add(v.visitor_id);
-                if (new Date(v.created_at).toDateString() === todayStr) todayCount++;
+                const vDate = new Date(v.created_at).toDateString();
 
-                const dayName = new Date(v.created_at).toLocaleDateString('en-US', { weekday: 'short' });
-                if (daysMap[dayName] !== undefined) daysMap[dayName]++;
+                if (vDate === todayStr) todayCount++;
+                if (daysMap[vDate]) daysMap[vDate].count++;
             });
 
             // Format Chart Data
-            const maxVal = Math.max(...Object.values(daysMap), 1);
-            const chartData = Object.entries(daysMap).reverse().map(([day, count]) => ({
-                day,
-                count,
-                height: Math.round((count / maxVal) * 100)
-            }));
+            // Object.values will return in undefined order, but since we created keys in loop...
+            // It's safer to reconstruct by iterating our known days
+            const chartData = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateKey = d.toDateString();
+                if (daysMap[dateKey]) {
+                    chartData.push({
+                        day: daysMap[dateKey].label,
+                        count: daysMap[dateKey].count,
+                        height: 0
+                    });
+                }
+            }
+            // Reverse to show Oldest -> Newest (Left -> Right)
+            chartData.reverse();
+
+            const maxVal = Math.max(...chartData.map(d => d.count), 1);
+            chartData.forEach(d => d.height = Math.round((d.count / maxVal) * 100));
 
             // Process Recent Visits
             const recentVisits = visitsData?.slice(0, 10).map(v => {
