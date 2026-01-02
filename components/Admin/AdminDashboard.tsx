@@ -791,7 +791,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                                         {stats.topProjects.map((p, i) => (
                                             <div key={p.id} className="flex items-center gap-3 group translate-y-0 hover:-translate-y-1 transition-transform duration-300">
                                                 <div className="w-12 h-12 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 border border-white/5">
-                                                    <img src={p.thumbnail_url} className="w-full h-full object-cover" />
+                                                    <img src={encodeURI(p.thumbnail_url)} className="w-full h-full object-cover" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex justify-between mb-1">
@@ -884,7 +884,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                                         </div>
                                         <div className="w-20 h-14 md:w-24 md:h-16 bg-black rounded-lg overflow-hidden flex-shrink-0 border border-white/10">
                                             {project.thumbnail_url ? (
-                                                <img src={project.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                                                <img src={encodeURI(project.thumbnail_url)} alt="" className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-slate-700">
                                                     <Image size={24} />
@@ -1172,7 +1172,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                                         onClick={() => document.getElementById('thumb-upload')?.click()}
                                         onDrop={(e) => handleDrop(e, 'thumbnail')}
                                         onDragOver={onDragOver}>
-                                        {editingProject.thumbnail_url ? <img src={editingProject.thumbnail_url} className="w-full h-auto max-h-[400px] object-contain" /> : <div className="text-center p-4">
+                                        {editingProject.thumbnail_url ? <img src={encodeURI(editingProject.thumbnail_url)} className="w-full h-auto max-h-[400px] object-contain" /> : <div className="text-center p-4">
                                             <Image className="w-8 h-8 text-slate-500 mx-auto mb-2" />
                                             <span className="text-xs text-slate-500">Click or Drag to upload</span>
                                         </div>}
