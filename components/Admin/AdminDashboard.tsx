@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { r2Client, R2_BUCKET, R2_PUBLIC_URL } from '../../lib/r2';
-import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { R2_BUCKET, R2_PUBLIC_URL, getUploadUrl, deleteR2File } from '../../lib/r2';
 import { X, Upload, Save, Trash2, Plus, GripVertical, LogOut, Image, Video, FileText, Users, TrendingUp, BarChart2, Activity, Edit, UploadCloud, User, Share2, Mail, Globe, Smartphone, Tablet, Monitor, MapPin, Cpu } from 'lucide-react';
 import { Button } from '../Button';
 import { PORTFOLIO_DATA } from '../../constants';
@@ -129,11 +128,13 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                 ContentType: file.type,
             };
 
-            const command = new PutObjectCommand(uploadParams);
+            const uploadUrl = await getUploadUrl(fileName, file.type);
 
-            // Note: AWS SDK v3 doesn't support progress events natively on the command object like XHR.
-            // For simplicity in this edit, we'll just await the upload.
-            await r2Client.send(command);
+            await fetch(uploadUrl, {
+                method: 'PUT',
+                body: file,
+                headers: { 'Content-Type': file.type }
+            });
 
             const publicUrl = `${R2_PUBLIC_URL}/${fileName}`;
             setProfileData(prev => ({ ...prev, about_image_url: publicUrl }));
@@ -446,16 +447,8 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
             const fileType = file.type || 'application/octet-stream';
 
-            // 1. Prepare Command
-            const command = new PutObjectCommand({
-                Bucket: R2_BUCKET,
-                Key: fileName,
-                ContentType: fileType,
-            });
-
-            // 2. Generate Pre-Signed URL
-            const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
-            const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 600 });
+            // 1. Get Presigned URL from Backend
+            const signedUrl = await getUploadUrl(fileName, fileType);
 
             // 3. Direct Upload (Bypass Proxy for reliability)
             // Ensure R2 CORS is configured: AllowedOrigins: [*], AllowedMethods: [PUT, GET], AllowedHeaders: [*]
@@ -652,11 +645,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                             if (url && url.includes(R2_PUBLIC_URL)) {
                                 try {
                                     const key = url.replace(`${R2_PUBLIC_URL}/`, '');
-                                    const command = new DeleteObjectCommand({
-                                        Bucket: R2_BUCKET,
-                                        Key: key,
-                                    });
-                                    await r2Client.send(command);
+                                    await deleteR2File(key);
                                     console.log('Deleted R2 file:', key);
                                 } catch (err) {
                                     console.error('Failed to delete R2 file:', err);
