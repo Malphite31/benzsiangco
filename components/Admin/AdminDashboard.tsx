@@ -1021,7 +1021,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                             </div>
 
                             {/* Recent Visitors Table */}
-                            <div className="bg-slate-800/40 p-6 rounded-3xl border border-white/5 mt-6">
+                            <div className="bg-slate-800/40 p-4 md:p-6 rounded-3xl border border-white/5 mt-6">
                                 <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><Globe size={20} className="text-green-500" /> Recent Visitors</h3>
                                 <div className="overflow-x-auto max-h-96 overflow-y-auto custom-scrollbar">
                                     <table className="w-full text-left border-collapse">
@@ -1029,34 +1029,34 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                                             <tr className="text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-white/5">
                                                 <th className="pb-3 pl-2">Time</th>
                                                 <th className="pb-3">Device</th>
-                                                <th className="pb-3">OS</th>
+                                                <th className="pb-3 hidden md:table-cell">OS</th>
                                                 <th className="pb-3">Location</th>
-                                                <th className="pb-3">Page</th>
-                                                <th className="pb-3 text-right">Visitor ID</th>
+                                                <th className="pb-3 hidden lg:table-cell">Page</th>
+                                                <th className="pb-3 text-right hidden xl:table-cell">Visitor ID</th>
                                             </tr>
                                         </thead>
                                         <tbody className="text-sm">
                                             {stats.recentVisits?.map((v: any, i: number) => (
                                                 <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-                                                    <td className="py-3 pl-2 text-slate-300 font-mono text-xs">{v.date}</td>
+                                                    <td className="py-3 pl-2 text-slate-300 font-mono text-xs whitespace-nowrap">{v.date}</td>
                                                     <td className="py-3">
                                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${v.device === 'Mobile' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : v.device === 'Tablet' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
                                                             {v.device === 'Mobile' ? <Smartphone size={12} /> : v.device === 'Tablet' ? <Tablet size={12} /> : <Monitor size={12} />}
                                                             {v.device}
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 text-slate-300 text-xs font-bold">
+                                                    <td className="py-3 text-slate-300 text-xs font-bold hidden md:table-cell">
                                                         <div className="flex items-center gap-2">
                                                             <Cpu size={14} className="text-slate-500" /> {v.os}
                                                         </div>
                                                     </td>
                                                     <td className="py-3 text-slate-300 text-xs">
                                                         <div className="flex items-center gap-2">
-                                                            <MapPin size={14} className="text-red-500" /> {v.location}
+                                                            <MapPin size={14} className="text-red-500" /> <span className="truncate max-w-[120px] md:max-w-none">{v.location}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="py-3 text-slate-300 truncate max-w-[150px]">{v.page}</td>
-                                                    <td className="py-3 text-right text-slate-500 font-mono text-xs">{v.id.substring(0, 8)}...</td>
+                                                    <td className="py-3 text-slate-300 truncate max-w-[150px] hidden lg:table-cell">{v.page}</td>
+                                                    <td className="py-3 text-right text-slate-500 font-mono text-xs hidden xl:table-cell">{v.id.substring(0, 8)}...</td>
                                                 </tr>
                                             ))}
                                         </tbody>
