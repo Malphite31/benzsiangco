@@ -49,21 +49,41 @@ function App() {
         // 1. Get Basic Info
         const ua = navigator.userAgent;
         let os = 'Unknown';
-        if (ua.indexOf("Win") !== -1) os = "Windows";
-        else if (ua.indexOf("Mac") !== -1) os = "MacOS";
-        else if (ua.indexOf("Linux") !== -1) os = "Linux";
-        else if (ua.indexOf("Android") !== -1) os = "Android";
-        else if (ua.indexOf("like Mac") !== -1) os = "iOS";
 
-        // 2. Get Geolocation (Best effort, non-blocking)
+        // More accurate OS detection
+        if (ua.indexOf("Win") !== -1) os = "Windows";
+        else if (ua.indexOf("Android") !== -1) os = "Android";
+        else if (ua.indexOf("iPhone") !== -1 || ua.indexOf("iPod") !== -1) os = "iOS";
+        else if (ua.indexOf("Mac") !== -1) {
+          // Check for iPad/touch devices masquerading as Mac
+          if (navigator.maxTouchPoints && navigator.maxTouchPoints > 2) {
+            os = "iPadOS";
+          } else {
+            os = "MacOS";
+          }
+        }
+        else if (ua.indexOf("Linux") !== -1) os = "Linux";
+
+        // 2. Get Geolocation (with fallback)
         let geo: any = {};
         try {
-          const res = await fetch('https://ipwho.is/');
+          // Try ipapi.co first (usually accurate)
+          const res = await fetch('https://ipapi.co/json/');
           if (res.ok) {
             geo = await res.json();
+          } else {
+            throw new Error('ipapi failed');
           }
         } catch (e) {
-          console.warn('Geo fetch failed', e);
+          try {
+            // Fallback to ipwho.is
+            const res = await fetch('https://ipwho.is/');
+            if (res.ok) {
+              geo = await res.json();
+            }
+          } catch (err) {
+            console.warn('Geo fetch failed', err);
+          }
         }
 
         // 3. Log to DB
