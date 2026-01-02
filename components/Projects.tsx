@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, X } from 'lucide-react';
+import { Play, X, ChevronsRight } from 'lucide-react';
 import { PROJECTS } from '../constants';
 import { supabase } from '../lib/supabase';
 
@@ -7,6 +7,21 @@ export const Projects: React.FC = () => {
   const [activeProject, setActiveProject] = useState<typeof PROJECTS[0] | null>(null);
   const [projects, setProjects] = useState(PROJECTS);
   const paralaxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (activeProject && activeProject.id) {
+      const logView = async () => {
+        try {
+          await supabase.from('project_views').insert([{
+            project_id: activeProject.id
+          }]);
+        } catch (err) {
+          console.warn('Failed to log view', err);
+        }
+      };
+      logView();
+    }
+  }, [activeProject]);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -31,6 +46,22 @@ export const Projects: React.FC = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-scale-up-fade');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    const cards = document.querySelectorAll('.project-card');
+    cards.forEach(card => observer.observe(card));
+
+    return () => observer.disconnect();
+  }, [projects]);
+
   return (
     <section id="projects" className="py-20 md:py-24 bg-[#020617] relative">
       <div ref={paralaxRef} className="parallax-bg opacity-20">
@@ -40,13 +71,13 @@ export const Projects: React.FC = () => {
 
       <div className="container mx-auto px-6 relative z-10 w-full">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-6 text-center md:text-left">
-          <div className="animate-fade-in-up">
+          <div className="project-card opacity-0">
             <span className="text-blue-500 font-black text-[9px] md:text-[10px] uppercase tracking-[0.4em] md:tracking-[0.5em] mb-4 block text-center md:text-left">PORTFOLIO</span>
             <h2 className="text-[2.5rem] md:text-8xl font-bold text-white leading-[1.1] md:leading-[1] tracking-tighter uppercase mb-2 text-center md:text-left">
               Selected <span className="instrument-serif text-blue-500 italic font-normal normal-case">Works</span>
             </h2>
           </div>
-          <p className="text-slate-500 text-[8px] md:text-[10px] font-bold uppercase tracking-widest max-w-[200px] leading-relaxed mx-auto md:mx-0 opacity-60 text-center md:text-left">
+          <p className="project-card opacity-0 text-slate-500 text-[8px] md:text-[10px] font-bold uppercase tracking-widest max-w-[200px] leading-relaxed mx-auto md:mx-0 opacity-60 text-center md:text-left" style={{ animationDelay: '0.2s' }}>
             Engineering attention through cinematic rhythm.
           </p>
         </div>
@@ -55,10 +86,11 @@ export const Projects: React.FC = () => {
           <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 w-full overflow-x-auto md:overflow-x-visible pb-12 md:pb-0 snap-x snap-mandatory scrollbar-hide scroll-smooth">
             <div className="min-w-[5%] md:hidden shrink-0"></div>
 
-            {projects.map((project) => (
+            {projects.map((project, index) => (
               <div
                 key={project.id}
-                className="group relative min-w-[300px] sm:min-w-0 md:w-full aspect-[9/16] bg-slate-900 rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-blue-500/30 transition-all duration-700 shadow-2xl hover:shadow-blue-500/20 cursor-pointer snap-center will-change-transform"
+                style={{ animationDelay: `${0.3 + (index * 0.1)}s` }}
+                className="project-card opacity-0 group relative min-w-[300px] sm:min-w-0 md:w-full aspect-[9/16] bg-slate-900 rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-blue-500/30 transition-all duration-700 shadow-2xl hover:shadow-blue-500/20 cursor-pointer snap-center will-change-transform"
                 onClick={() => setActiveProject(project)}
               >
                 <div className="absolute inset-0 z-0 transition-transform duration-1000 group-hover:scale-110">
@@ -83,27 +115,34 @@ export const Projects: React.FC = () => {
             <div className="min-w-[5%] md:hidden shrink-0"></div>
           </div>
 
-          <div className="absolute -bottom-2 font-black text-[7px] text-blue-500/40 uppercase tracking-[0.5em] w-full text-center md:hidden pointer-events-none">
-            Swipe to Discover
+          <div className="absolute bottom-4 left-0 w-full flex justify-center md:hidden pointer-events-none z-20">
+            <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg">
+              <span className="text-[9px] font-bold text-white uppercase tracking-widest mr-1">Swipe</span>
+              {/* Visual Arrow Animation */}
+              <div className="flex relative">
+                <ChevronsRight className="w-4 h-4 text-blue-500 opacity-50 absolute animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                <ChevronsRight className="w-4 h-4 text-blue-500 relative z-10" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {activeProject && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center lg:p-4">
           <div className="absolute inset-0 bg-slate-950/98 backdrop-blur-3xl animate-fade-in" onClick={() => setActiveProject(null)}></div>
 
-          <div className="relative w-full max-w-[400px] lg:max-w-6xl bg-[#0a101f] rounded-[2.5rem] md:rounded-[3.5rem] border border-white/10 shadow-3xl flex flex-col lg:flex-row p-2 animate-bounce-in max-h-[85vh] lg:max-h-[95vh] overflow-y-auto lg:overflow-hidden scrollbar-hide">
+          <div className="relative w-full h-full lg:h-auto lg:max-w-6xl bg-black lg:bg-[#0a101f] lg:rounded-[3.5rem] lg:border border-white/10 shadow-3xl flex flex-col lg:flex-row lg:p-2 animate-bounce-in overflow-hidden">
 
             <button
               onClick={() => setActiveProject(null)}
-              className="absolute top-4 right-4 z-[120] p-2.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 transition-all hover:scale-110 active:scale-90"
+              className="absolute top-6 right-6 lg:top-4 lg:right-4 z-[130] p-3 lg:p-2.5 rounded-full bg-black/40 lg:bg-black/60 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 transition-all hover:scale-110 active:scale-90"
             >
-              <X size={20} />
+              <X size={24} className="lg:w-5 lg:h-5" />
             </button>
 
             {/* Video Container */}
-            <div className="relative w-full lg:w-1/2 aspect-[9/16] lg:aspect-video rounded-[2rem] lg:rounded-[2.5rem] overflow-hidden bg-black shadow-2xl flex-shrink-0">
+            <div className="relative w-full flex-1 lg:flex-none lg:w-1/2 lg:h-auto aspect-[9/16] lg:aspect-video lg:rounded-[2.5rem] overflow-hidden bg-black shadow-2xl flex-shrink-0">
               {(() => {
                 const url = (activeProject as any).video_url || activeProject.videoUrl;
                 const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
@@ -132,17 +171,19 @@ export const Projects: React.FC = () => {
             </div>
 
             {/* Content Container */}
-            <div className="p-6 md:p-12 lg:w-1/2 flex flex-col justify-start lg:justify-center text-center lg:text-left h-auto lg:h-full">
-              <div className="pb-4 lg:pb-0">
-                <span className="text-blue-500 font-black text-[9px] uppercase tracking-[0.4em] mb-4 block mt-6 lg:mt-0">GALLERY SHOWCASE</span>
-                <h2 className="text-2xl md:text-3xl lg:text-5xl font-bold text-white mb-6 leading-tight uppercase tracking-tight">{activeProject.title}</h2>
-                <div className="w-12 h-1 bg-blue-600 mb-8 mx-auto lg:mx-0 hidden lg:block"></div>
+            <div className="w-full lg:flex-1 p-6 md:p-12 lg:w-1/2 flex flex-col bg-[#0a101f] lg:bg-transparent relative z-10 border-t border-white/10 lg:border-none rounded-t-[2rem] lg:rounded-none h-[40vh] lg:h-auto overflow-y-auto">
+              <div className="space-y-6 lg:space-y-8">
+                <div>
+                  <span className="text-blue-500 font-black text-[9px] uppercase tracking-[0.4em] mb-2 block">GALLERY SHOWCASE</span>
+                  <h2 className="text-2xl md:text-3xl lg:text-5xl font-bold text-white leading-tight uppercase tracking-tight">{activeProject.title}</h2>
+                  <div className="w-12 h-1 bg-blue-600 my-4 hidden lg:block"></div>
+                </div>
 
-                <p className="text-slate-400 text-xs md:text-sm lg:text-lg leading-relaxed mb-8 max-w-[280px] lg:max-w-none mx-auto lg:mx-0 opacity-70">
+                <p className="text-slate-400 text-sm lg:text-lg leading-relaxed opacity-70">
                   {activeProject.description}
                 </p>
 
-                <div className="hidden lg:grid grid-cols-2 gap-4 mb-8">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
                     <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Category</span>
                     <span className="text-sm font-bold text-white">{activeProject.category}</span>
@@ -152,14 +193,14 @@ export const Projects: React.FC = () => {
                     <span className="text-sm font-bold text-white">9:16 Vertical</span>
                   </div>
                 </div>
-              </div>
 
-              <button
-                onClick={() => setActiveProject(null)}
-                className="w-full lg:w-auto py-4 px-8 rounded-2xl bg-white/[0.04] border border-white/10 text-white text-[10px] lg:text-xs font-black uppercase tracking-widest hover:bg-white/10 hover:border-blue-500/20 transition-all font-bold group mt-auto lg:mt-0"
-              >
-                Return to Gallery
-              </button>
+                <button
+                  onClick={() => setActiveProject(null)}
+                  className="w-full lg:w-auto py-4 px-8 rounded-2xl bg-blue-600 text-white text-xs font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20"
+                >
+                  Close Preview
+                </button>
+              </div>
             </div>
           </div>
         </div>

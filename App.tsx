@@ -50,8 +50,8 @@ function App() {
         const { supabase } = await import('./lib/supabase');
         await supabase.from('site_visits').insert([{
           visitor_id: visitorId,
-          page_url: window.location.pathname,
-          location: 'Unknown' // Ideally use an edge function for IP geoloc
+          page: window.location.pathname,
+          user_agent: navigator.userAgent
         }]);
       } catch (e) {
         console.warn('Analytics error', e);

@@ -16,7 +16,7 @@ export const PORTFOLIO_DATA = {
     linkedin: "https://www.linkedin.com/in/jessie-benz-siangco-578671263/",
     upwork: "https://www.upwork.com/freelancers/~01a117d57b162100540?s=1044578476142100540",
     onlinejobs: "https://www.onlinejobs.ph/jobseekers/info/2910849",
-    github: "https://github.com/benzsiangco"
+    github: "https://github.com/Malphite31"
   }
 };
 

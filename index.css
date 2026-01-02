@@ -131,7 +131,7 @@ section {
   transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-/* APPLE STYLE REVEAL ANIMATIONS */
+/* APPLE STYLE REVEAL ANIMATIONS (HERO) */
 @keyframes apple-reveal {
   0% {
     opacity: 0;
@@ -149,6 +149,84 @@ section {
 .animate-apple-reveal {
   opacity: 0;
   animation: apple-reveal 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* BLUR FOCUS REVEAL (ABOUT SECTION) */
+@keyframes blur-in {
+  0% {
+    opacity: 0;
+    filter: blur(20px);
+    transform: scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+.animate-blur-in {
+  opacity: 0;
+  animation: blur-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* SCALE UP FADE (PROJECTS) */
+@keyframes scale-up-fade {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-scale-up-fade {
+  opacity: 0;
+  animation: scale-up-fade 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* POP IN (SKILLS) */
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  60% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-pop-in {
+  opacity: 0;
+  animation: pop-in 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* SLIDE IN RIGHT (CONTACT) */
+@keyframes slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  opacity: 0;
+  animation: slide-in-right 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 /* UPGRADE LEGACY ANIMATIONS TO APPLE STYLE */
@@ -184,4 +262,14 @@ section {
 
 .delay-700 {
   animation-delay: 700ms;
+}
+
+@keyframes wave {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }

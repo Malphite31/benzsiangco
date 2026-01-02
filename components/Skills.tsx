@@ -10,18 +10,25 @@ export const Skills: React.FC = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('opacity-100', 'translate-y-0', 'blur-0');
-            entry.target.classList.remove('opacity-0', 'translate-y-10', 'blur-sm');
+            if (entry.target.classList.contains('skill-card')) {
+              entry.target.classList.add('animate-pop-in');
+            } else if (entry.target.classList.contains('skill-header')) {
+              entry.target.classList.add('animate-blur-in');
+            }
+            observer.unobserve(entry.target);
           }
         });
       },
       { threshold: 0.1 }
     );
 
+    const header = containerRef.current?.querySelector('.skill-header');
+    if (header) observer.observe(header);
+
     const cards = containerRef.current?.querySelectorAll('.skill-card');
     cards?.forEach((card, index) => {
       // Add staggered delay
-      (card as HTMLElement).style.transitionDelay = `${index * 50}ms`;
+      (card as HTMLElement).style.animationDelay = `${index * 50}ms`;
       observer.observe(card);
     });
 
@@ -51,7 +58,7 @@ export const Skills: React.FC = () => {
       <div className="container mx-auto px-6 relative z-10" ref={containerRef}>
 
         {/* Section Header */}
-        <div className="flex flex-col items-center justify-center text-center mb-10 md:mb-16">
+        <div className="skill-header opacity-0 flex flex-col items-center justify-center text-center mb-10 md:mb-16">
           <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
             <Sparkles size={12} className="text-blue-400" />
             <span className="text-[10px] font-bold tracking-[0.3em] text-slate-300 uppercase">My Arsenal</span>
@@ -74,7 +81,7 @@ export const Skills: React.FC = () => {
             return (
               <div
                 key={skill.name}
-                className="skill-card group relative p-5 md:p-6 rounded-[1.5rem] bg-[#0f172a]/40 border border-white/5 hover:border-white/10 transition-all duration-700 opacity-0 translate-y-10 blur-sm hover:-translate-y-2"
+                className="skill-card group relative p-5 md:p-6 rounded-[1.5rem] bg-[#0f172a]/40 border border-white/5 hover:border-white/10 transition-all duration-700 opacity-0 hover:-translate-y-2"
               >
                 {/* Hover Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[1.5rem]" />

@@ -1,11 +1,46 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Video, Zap, Layers, BadgeCheck } from 'lucide-react';
 import { PORTFOLIO_DATA } from '../constants';
+import { supabase } from '../lib/supabase';
 
 export const About: React.FC = () => {
   const paralaxRef = useRef<HTMLDivElement>(null);
+  const [profile, setProfile] = useState({
+    about_image_url: '/hero-img.png',
+    about_headline: 'WORKFLOW Essential',
+    about_headline_highlight: 'Essential',
+    about_subheadline: 'I\'m a video editor specializing in shortform content for brands and creators. I craft engaging edits that boost reach and audience retention.',
+    about_description_1: PORTFOLIO_DATA.longBio.split('\n')[0] || '',
+    about_description_2: PORTFOLIO_DATA.longBio.split('\n')[2] || ''
+  });
+
+  const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-blur-in');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+
+    // Select the main card to animate
+    const card = sectionRef.current?.querySelector('.about-card');
+    if (card) observer.observe(card);
+
+    const fetchProfile = async () => {
+      const { data, error } = await supabase.from('profile').select('*').eq('id', 1).single();
+      if (data && !error) {
+        setProfile(prev => ({ ...prev, ...data }));
+      }
+    };
+    fetchProfile();
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!paralaxRef.current) return;
       const x = (e.clientX / window.innerWidth - 0.5) * -15;
@@ -23,11 +58,11 @@ export const About: React.FC = () => {
   ];
 
   return (
-    <section id="about" className="py-12 md:py-32 bg-[#020617] relative">
+    <section id="about" className="py-12 md:py-32 bg-[#020617] relative" ref={sectionRef}>
       <div className="container mx-auto px-4 relative z-10">
 
         {/* Main Ultra-Rounded Glass Card */}
-        <div className="bg-[#0a101f]/80 backdrop-blur-3xl rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-14 lg:p-20 border border-white/5 relative overflow-hidden shadow-3xl flex flex-col items-center">
+        <div className="about-card opacity-0 bg-[#0a101f]/80 backdrop-blur-3xl rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-14 lg:p-20 border border-white/5 relative overflow-hidden shadow-3xl flex flex-col items-center">
 
           {/* Decorative Glows */}
           <div ref={paralaxRef} className="absolute inset-0 pointer-events-none opacity-30">
@@ -44,7 +79,7 @@ export const About: React.FC = () => {
                   <div className="relative z-10 aspect-square rounded-[2.2rem] md:rounded-[3.8rem] overflow-hidden border border-white/10 shadow-2xl p-1.5 md:p-2 bg-[#020617]">
                     <div className="w-full h-full rounded-[1.8rem] md:rounded-[3.4rem] overflow-hidden relative bg-gradient-to-br from-blue-900/40 to-indigo-950">
                       <img
-                        src="/hero-img.png"
+                        src={profile.about_image_url}
                         alt="Benz Siangco"
                         className="w-full h-full object-cover object-top"
                       />
@@ -62,20 +97,32 @@ export const About: React.FC = () => {
                 </div>
 
                 <h2 className="text-[2.5rem] md:text-8xl font-bold text-white leading-[1.1] mb-6 tracking-tighter uppercase px-2 sm:px-0">
-                  Workflow <span className="instrument-serif text-blue-500 italic font-normal normal-case block sm:inline">Essential</span>
+                  {profile.about_headline_highlight && profile.about_headline.includes(profile.about_headline_highlight) ? (
+                    profile.about_headline.split(profile.about_headline_highlight).map((part, i, arr) => (
+                      <React.Fragment key={i}>
+                        {part}
+                        {i < arr.length - 1 && (
+                          <span className="instrument-serif text-blue-500 italic font-normal normal-case block sm:inline">{profile.about_headline_highlight}</span>
+                        )}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    profile.about_headline
+                  )}
                 </h2>
 
                 <p className="text-slate-400 text-sm md:text-xl font-medium leading-relaxed mb-8 md:mb-10 opacity-70 max-w-xl mx-auto lg:mx-0 px-4 lg:px-0">
-                  {PORTFOLIO_DATA.aboutText}
+                  {profile.about_subheadline}
                 </p>
 
                 {/* Grid Bio Cards - Now Balanced for Mobile */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5 mb-10">
-                  {PORTFOLIO_DATA.longBio.split('\n').filter(p => p.trim()).map((paragraph, idx) => (
-                    <div key={idx} className="p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-white/[0.03] border border-white/[0.05] text-left lg:text-left shadow-lg">
-                      <p className="text-slate-400 text-[11px] md:text-sm leading-relaxed">{paragraph}</p>
-                    </div>
-                  ))}
+                  <div className="p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-white/[0.03] border border-white/[0.05] text-left lg:text-left shadow-lg">
+                    <p className="text-slate-400 text-[11px] md:text-sm leading-relaxed">{profile.about_description_1}</p>
+                  </div>
+                  <div className="p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-white/[0.03] border border-white/[0.05] text-left lg:text-left shadow-lg">
+                    <p className="text-slate-400 text-[11px] md:text-sm leading-relaxed">{profile.about_description_2}</p>
+                  </div>
                 </div>
 
                 {/* Mastery Pillars - Symmetrical Grid for Mobile */}

@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { r2Client, R2_BUCKET, R2_PUBLIC_URL } from '../../lib/r2';
 import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { X, Upload, Save, Trash2, Plus, GripVertical, LogOut, Image, Video, FileText, Users, TrendingUp, BarChart2, Activity } from 'lucide-react';
+import { X, Upload, Save, Trash2, Plus, GripVertical, LogOut, Image, Video, FileText, Users, TrendingUp, BarChart2, Activity, Edit, UploadCloud, User, Share2, Mail } from 'lucide-react';
 import { Button } from '../Button';
+import { PORTFOLIO_DATA } from '../../constants'; // Assuming constants.ts exists and contains PORTFOLIO_DATA
 
 interface Project {
     id?: number;
@@ -15,10 +17,19 @@ interface Project {
     sort_order: number;
 }
 
+const Input = ({ className = '', ...props }: any) => (
+    <input className={`w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all ${className}`} {...props} />
+);
+
+const Label = ({ children, className = '' }: any) => (
+    <label className={`block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ${className}`}>{children}</label>
+);
+
 export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     // State
-    const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'skills'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'skills' | 'profile'>('overview');
     const [navVisible, setNavVisible] = useState(true);
+    const [loading, setLoading] = useState(false); // Added loading state
 
     // Data State
     const [projects, setProjects] = useState<Project[]>([]);
@@ -44,6 +55,112 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
     // Feedback & Confirm State
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
     const [confirmDialog, setConfirmDialog] = useState<{ message: string, onConfirm: () => void } | null>(null);
+
+    // Profile State
+    const [profileData, setProfileData] = useState({
+        email: '',
+        social_upwork: '',
+        social_linkedin: '',
+        social_tiktok: '',
+        social_onlinejobs: '',
+        social_github: '',
+        contact_subtext: '',
+        rush_available: true,
+        about_image_url: '',
+        about_headline: '',
+        about_headline_highlight: '',
+        about_subheadline: '',
+        about_description_1: '',
+        about_description_2: ''
+    });
+
+    useEffect(() => {
+        if (activeTab === 'profile') {
+            fetchProfile();
+        }
+    }, [activeTab]);
+
+    const fetchProfile = async () => {
+        try {
+            const { data, error } = await supabase.from('profile').select('*').eq('id', 1).single();
+            if (data && !error) {
+                setProfileData(data);
+            } else {
+                // Fallback to defaults
+                setProfileData({
+                    email: PORTFOLIO_DATA.socials.email,
+                    social_upwork: PORTFOLIO_DATA.socials.upwork,
+                    social_linkedin: PORTFOLIO_DATA.socials.linkedin,
+                    social_tiktok: PORTFOLIO_DATA.socials.tiktok,
+                    social_onlinejobs: PORTFOLIO_DATA.socials.onlinejobs,
+                    social_github: PORTFOLIO_DATA.socials.github,
+                    contact_subtext: "Ready to elevate your content? Reach out for collaboration. I respond within 24 hours.",
+                    rush_available: true,
+                    about_image_url: '/hero-img.png',
+                    about_headline: 'WORKFLOW Essential',
+                    about_headline_highlight: 'Essential',
+                    about_subheadline: 'I\'m a video editor specializing in shortform content for brands and creators. I craft engaging edits that boost reach and audience retention.',
+                    about_description_1: PORTFOLIO_DATA.longBio.split('\n')[0] || '',
+                    about_description_2: PORTFOLIO_DATA.longBio.split('\n')[2] || ''
+                });
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        setUploadProgress(0);
+
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `profile-${Date.now()}.${fileExt}`;
+            const uploadParams = {
+                Bucket: R2_BUCKET,
+                Key: fileName,
+                Body: file,
+                ContentType: file.type,
+            };
+
+            const command = new PutObjectCommand(uploadParams);
+
+            // Note: AWS SDK v3 doesn't support progress events natively on the command object like XHR.
+            // For simplicity in this edit, we'll just await the upload.
+            await r2Client.send(command);
+
+            const publicUrl = `${R2_PUBLIC_URL}/${fileName}`;
+            setProfileData(prev => ({ ...prev, about_image_url: publicUrl }));
+            showFeedback('success', 'Profile image uploaded');
+
+        } catch (error) {
+            console.error('Upload failed:', error);
+            showFeedback('error', 'Upload failed');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+
+    const handleSaveProfile = async () => {
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('profile').upsert({
+                id: 1,
+                ...profileData
+            });
+            if (error) throw error;
+            showFeedback('success', 'Profile updated successfully');
+        } catch (error: any) {
+            console.error('Save error:', error);
+            showFeedback('error', 'Failed to update profile');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const showFeedback = (type: 'success' | 'error', message: string) => {
         setFeedback({ type, message });
@@ -145,7 +262,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
         setUploadEta('...');
 
         try {
-            const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+            const fileName = `${Date.now()} -${file.name.replace(/[^a-zA-Z0-9.-]/g, '')} `;
 
             const fileType = file.type || 'application/octet-stream';
 
@@ -160,16 +277,15 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
             const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
             const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 600 });
 
-            // 3. Route through Local Proxy
-            const urlObj = new URL(signedUrl);
-            const proxyUrl = `/r2-proxy${urlObj.pathname}${urlObj.search}`;
+            // 3. Direct Upload (Bypass Proxy for reliability)
+            // Ensure R2 CORS is configured: AllowedOrigins: [*], AllowedMethods: [PUT, GET], AllowedHeaders: [*]
 
             // 4. Perform Upload via XHR
             await new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 uploadXhrRef.current = xhr;
 
-                xhr.open('PUT', proxyUrl, true);
+                xhr.open('PUT', signedUrl, true);
                 xhr.setRequestHeader('Content-Type', fileType);
                 xhr.timeout = 0; // Disable client-side timeout
 
@@ -191,8 +307,8 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
                             // Format Speed
                             let speedStr = '';
-                            if (speed > 1024 * 1024) speedStr = `${(speed / (1024 * 1024)).toFixed(1)} MB/s`;
-                            else speedStr = `${(speed / 1024).toFixed(1)} KB/s`;
+                            if (speed > 1024 * 1024) speedStr = `${(speed / (1024 * 1024)).toFixed(1)} MB / s`;
+                            else speedStr = `${(speed / 1024).toFixed(1)} KB / s`;
                             setUploadSpeed(speedStr);
 
                             // Format ETA
@@ -206,12 +322,12 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                     if (xhr.status >= 200 && xhr.status < 300) {
                         resolve(xhr.response);
                     } else {
-                        reject(new Error(`Upload failed: ${xhr.statusText}`));
+                        reject(new Error(`Upload failed: ${xhr.statusText} (${xhr.status})`));
                     }
                 };
 
                 xhr.onabort = () => reject(new Error('Cancelled by user'));
-                xhr.onerror = () => reject(new Error('Network upload failed'));
+                xhr.onerror = () => reject(new Error('Network upload failed - check CORS configuration'));
                 xhr.send(file);
             });
 
@@ -247,7 +363,8 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
             video.autoplay = true; // helps force loading in some browsers
 
             video.onloadeddata = () => {
-                video.currentTime = 1; // Seek to 1s
+                const seekTime = Math.min(1, video.duration / 2); // Seek to 1s or half duration if shorter
+                video.currentTime = seekTime;
             };
 
             video.onseeked = () => {
@@ -302,7 +419,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                         const thumbUrl = await handleFileUpload(thumbFile);
                         if (thumbUrl) setEditingProject(prev => prev ? ({ ...prev, thumbnail_url: thumbUrl }) : null);
                     }
-                });
+                }).catch(err => console.error("Thumbnail generation failed:", err));
 
             } else if (type === 'skill_icon') {
                 setEditingSkill((prev: any) => prev ? ({ ...prev, icon_url: url }) : null);
@@ -484,6 +601,35 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
     };
 
 
+    // Drag & Drop State
+    const dragItem = useRef<number>(0);
+    const dragOverItem = useRef<number>(0);
+
+    const handleDragSort = async () => {
+        const _projects = [...projects];
+        const draggedItemContent = _projects.splice(dragItem.current, 1)[0];
+        _projects.splice(dragOverItem.current, 0, draggedItemContent);
+
+        // Optimistic UI Update
+        setProjects(_projects);
+
+        // Prepare Updates (Only ID and SortOrder for efficiency, Upsert will match PK)
+        const updates = _projects.map((p, index) => ({
+            ...p,
+            sort_order: index
+        }));
+
+        try {
+            const { error } = await supabase.from('projects').upsert(updates);
+            if (error) throw error;
+            showFeedback('success', 'Order updated');
+        } catch (error: any) {
+            console.error('Reorder error:', error);
+            showFeedback('error', 'Failed to save order');
+            fetchProjects(); // Revert on failure
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-[100] bg-[#020617] text-white flex animate-fade-in overflow-hidden font-sans">
             {/* Sidebar */}
@@ -504,6 +650,9 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                     </button>
                     <button onClick={() => setActiveTab('skills')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'skills' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
                         <div className="w-5"><GripVertical size={18} /></div> Skills
+                    </button>
+                    <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'profile' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-slate-400'}`}>
+                        <div className="w-5"><User size={18} /></div> Profile
                     </button>
                 </nav>
             </div>
@@ -612,17 +761,37 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                         </div>
                     )}
 
+
+
                     {activeTab === 'projects' && (
                         <div className="max-w-5xl mx-auto">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-2xl font-bold">Portfolio Items</h3>
-                                <Button variant="primary" onClick={() => setEditingProject({ title: '', category: 'Short Form', thumbnail_url: '', video_url: '', description: '', sort_order: 0 })} icon={<Plus size={16} />}>Add New</Button>
+                                <h3 className="text-2xl font-bold">Projects</h3>
+                                <Button variant="primary" onClick={() => setEditingProject({ title: '', category: 'Short Form', thumbnail_url: '', video_url: '', description: '', sort_order: projects.length })} icon={<Plus size={16} />}>Add Project</Button>
                             </div>
+
                             <div className="grid grid-cols-1 gap-4">
-                                {projects.map(project => (
-                                    <div key={project.id} className="bg-slate-800/40 border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:border-blue-500/30 transition-all">
-                                        <div className="w-20 h-14 md:w-24 md:h-16 bg-black rounded-lg overflow-hidden flex-shrink-0">
-                                            <img src={project.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                                {projects.map((project, index) => (
+                                    <div
+                                        key={project.id}
+                                        className="bg-slate-800/40 border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:border-blue-500/30 transition-all cursor-move"
+                                        draggable
+                                        onDragStart={() => (dragItem.current = index)}
+                                        onDragEnter={() => (dragOverItem.current = index)}
+                                        onDragEnd={handleDragSort}
+                                        onDragOver={(e) => e.preventDefault()}
+                                    >
+                                        <div className="p-2 text-slate-600 cursor-grab">
+                                            <GripVertical size={20} />
+                                        </div>
+                                        <div className="w-20 h-14 md:w-24 md:h-16 bg-black rounded-lg overflow-hidden flex-shrink-0 border border-white/10">
+                                            {project.thumbnail_url ? (
+                                                <img src={project.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-slate-700">
+                                                    <Image size={24} />
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h4 className="font-bold text-white truncate text-sm md:text-base">{project.title}</h4>
@@ -636,12 +805,218 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                                 ))}
                                 {projects.length === 0 && (
                                     <div className="text-center py-10">
-                                        <Button variant="outline" onClick={confirmImport}>Import Defaults</Button>
+                                        <p className="text-slate-500 mb-4">No projects found.</p>
+                                        <Button variant="outline" onClick={confirmImport}>Import Default Projects</Button>
                                     </div>
                                 )}
                             </div>
                         </div>
                     )}
+
+                    {activeTab === 'profile' && (
+                        <div className="max-w-3xl mx-auto">
+                            <h3 className="text-2xl font-bold mb-6">Profile & Contact</h3>
+
+                            <div className="bg-slate-800/40 border border-white/5 rounded-2xl p-6 space-y-6">
+
+                                {/* About Section */}
+                                <div>
+                                    <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><User size={18} className="text-blue-500" /> About Section</h4>
+
+                                    <div className="flex flex-col md:flex-row gap-6 mb-6">
+                                        <div className="w-full md:w-1/3">
+                                            <Label>Profile Picture</Label>
+                                            <div className="relative aspect-[3/4] bg-black/40 rounded-xl overflow-hidden border border-white/10 group">
+                                                {profileData.about_image_url ? (
+                                                    <img src={profileData.about_image_url} alt="Profile" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="absolute inset-0 flex items-center justify-center text-slate-500">
+                                                        <Image size={32} />
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                                    <label className="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 transition-all">
+                                                        <UploadCloud size={14} /> Change Image
+                                                        <input type="file" className="hidden" accept="image/*" onChange={handleProfileImageUpload} disabled={isUploading} />
+                                                    </label>
+                                                </div>
+                                                {isUploading && (
+                                                    <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                                                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 space-y-4">
+                                            <div className="space-y-2">
+                                                <Label>Headline</Label>
+                                                <Input
+                                                    value={profileData.about_headline}
+                                                    onChange={(e: any) => setProfileData({ ...profileData, about_headline: e.target.value })}
+                                                    className="bg-black/40 border-white/10 font-bold text-lg"
+                                                    placeholder="e.g. WORKFLOW Essential"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Select Highlight Word</Label>
+                                                <div className="flex flex-wrap gap-2 p-3 bg-black/20 rounded-xl border border-white/5 min-h-[50px] items-center">
+                                                    {profileData.about_headline ? (
+                                                        profileData.about_headline.split(' ').map((word, i) => (
+                                                            <button
+                                                                key={i}
+                                                                onClick={() => setProfileData({ ...profileData, about_headline_highlight: word })}
+                                                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${profileData.about_headline_highlight === word
+                                                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 ring-1 ring-blue-500'
+                                                                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
+                                                                    }`}
+                                                            >
+                                                                {word}
+                                                            </button>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-slate-600 text-sm italic">Enter a headline first...</span>
+                                                    )}
+                                                    {profileData.about_headline_highlight && (
+                                                        <button
+                                                            onClick={() => setProfileData({ ...profileData, about_headline_highlight: '' })}
+                                                            className="ml-auto text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-500/10 transition-colors"
+                                                        >
+                                                            Clear
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+                                                    Click a word above to apply the signature styling.
+                                                </p>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Sub-Headline</Label>
+                                                <textarea
+                                                    value={profileData.about_subheadline}
+                                                    onChange={(e: any) => setProfileData({ ...profileData, about_subheadline: e.target.value })}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500/50 min-h-[80px]"
+                                                ></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Description Box 1</Label>
+                                            <textarea
+                                                value={profileData.about_description_1}
+                                                onChange={(e: any) => setProfileData({ ...profileData, about_description_1: e.target.value })}
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500/50 min-h-[120px]"
+                                            ></textarea>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Description Box 2</Label>
+                                            <textarea
+                                                value={profileData.about_description_2}
+                                                onChange={(e: any) => setProfileData({ ...profileData, about_description_2: e.target.value })}
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500/50 min-h-[120px]"
+                                            ></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-white/5 my-6"></div>
+
+                                {/* Contact Info */}
+                                <div>
+                                    <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Mail size={18} className="text-blue-500" /> Contact Info</h4>
+                                    <div className="grid gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Email Address</Label>
+                                            <Input
+                                                value={profileData.email}
+                                                onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                                                className="bg-black/40 border-white/10"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Contact Subtext</Label>
+                                            <textarea
+                                                value={profileData.contact_subtext}
+                                                onChange={(e) => setProfileData({ ...profileData, contact_subtext: e.target.value })}
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500/50 min-h-[100px]"
+                                            ></textarea>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="checkbox"
+                                                id="rush"
+                                                checked={profileData.rush_available}
+                                                onChange={(e) => setProfileData({ ...profileData, rush_available: e.target.checked })}
+                                                className="w-4 h-4 rounded border-white/10 bg-black/40 text-blue-500 focus:ring-blue-500"
+                                            />
+                                            <label htmlFor="rush" className="text-sm font-bold text-white cursor-pointer select-none">Rush Turnaround Available</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-white/5 my-6"></div>
+
+                                {/* Social Links */}
+                                <div>
+                                    <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Share2 size={18} className="text-purple-500" /> Social Links</h4>
+                                    <div className="grid gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label>Upwork URL</Label>
+                                                <Input
+                                                    value={profileData.social_upwork}
+                                                    onChange={(e) => setProfileData({ ...profileData, social_upwork: e.target.value })}
+                                                    className="bg-black/40 border-white/10"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>LinkedIn URL</Label>
+                                                <Input
+                                                    value={profileData.social_linkedin}
+                                                    onChange={(e) => setProfileData({ ...profileData, social_linkedin: e.target.value })}
+                                                    className="bg-black/40 border-white/10"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label>TikTok URL</Label>
+                                                <Input
+                                                    value={profileData.social_tiktok}
+                                                    onChange={(e) => setProfileData({ ...profileData, social_tiktok: e.target.value })}
+                                                    className="bg-black/40 border-white/10"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>OnlineJobs URL</Label>
+                                                <Input
+                                                    value={profileData.social_onlinejobs}
+                                                    onChange={(e) => setProfileData({ ...profileData, social_onlinejobs: e.target.value })}
+                                                    className="bg-black/40 border-white/10"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>GitHub URL</Label>
+                                            <Input
+                                                value={profileData.social_github}
+                                                onChange={(e) => setProfileData({ ...profileData, social_github: e.target.value })}
+                                                className="bg-black/40 border-white/10"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end pt-4">
+                                    <Button variant="primary" onClick={handleSaveProfile} isLoading={loading}>
+                                        Save Changes
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
 
                     {activeTab === 'skills' && (
                         <div className="max-w-5xl mx-auto">
@@ -695,11 +1070,11 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Thumbnail</label>
-                                    <div className="aspect-video bg-black/40 border-2 border-dashed border-white/10 rounded-xl flex items-center justify-center cursor-pointer relative overflow-hidden group"
+                                    <div className={`w-full bg-black/40 border-2 border-dashed border-white/10 rounded-xl flex items-center justify-center cursor-pointer relative overflow-hidden group ${editingProject.thumbnail_url ? 'h-auto py-2' : 'aspect-video'}`}
                                         onClick={() => document.getElementById('thumb-upload')?.click()}
                                         onDrop={(e) => handleDrop(e, 'thumbnail')}
                                         onDragOver={onDragOver}>
-                                        {editingProject.thumbnail_url ? <img src={editingProject.thumbnail_url} className="w-full h-full object-cover" /> : <div className="text-center p-4">
+                                        {editingProject.thumbnail_url ? <img src={editingProject.thumbnail_url} className="w-full h-auto max-h-[400px] object-contain" /> : <div className="text-center p-4">
                                             <Image className="w-8 h-8 text-slate-500 mx-auto mb-2" />
                                             <span className="text-xs text-slate-500">Click or Drag to upload</span>
                                         </div>}
@@ -875,25 +1250,49 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
             {/* Global Upload Overlay */}
             {uploadProgress > 0 && (
                 <div className="absolute inset-0 z-[60] bg-black/90 backdrop-blur-md flex items-center justify-center text-white flex-col animate-in fade-in duration-300">
-                    <div className="w-64 space-y-4 text-center">
-                        <div className="relative w-24 h-24 mx-auto">
-                            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#1e293b" strokeWidth="3" />
-                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#3b82f6" strokeWidth="3" strokeDasharray={`${uploadProgress}, 100`} className="transition-all duration-300 ease-out" />
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center font-bold text-xl">{uploadProgress}%</div>
+                    <div className="w-80 space-y-8 flex flex-col items-center">
+
+                        {/* Liquid Bucket Container */}
+                        <div className="relative w-32 h-40 bg-white/5 rounded-2xl border-2 border-white/20 overflow-hidden shadow-[0_0_40px_rgba(59,130,246,0.2)] backdrop-blur-sm">
+                            {/* Filling Liquid Background - Darker */}
+                            <div className="absolute left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-blue-600 rounded-[35%] animate-[wave_6s_linear_infinite]"
+                                style={{ top: `${100 - uploadProgress}%`, transition: 'top 0.3s ease-out' }}>
+                            </div>
+
+                            {/* Filling Liquid Foreground - Lighter */}
+                            <div className="absolute left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-blue-500/90 rounded-[40%] animate-[wave_4s_linear_infinite]"
+                                style={{ top: `${100 - uploadProgress - 5}%`, transition: 'top 0.3s ease-out' }}>
+                            </div>
+
+                            {/* Text Percentage */}
+                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none mix-blend-overlay">
+                                <span className="text-4xl font-black text-white">{uploadProgress}%</span>
+                            </div>
+
+                            {/* Glare/Highlight on Glass */}
+                            <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-white/10 to-transparent pointer-events-none"></div>
                         </div>
 
-                        <div>
-                            <h4 className="font-bold text-lg mb-1">Uploading...</h4>
-                            <div className="text-xs text-slate-400 flex items-center justify-center gap-2 font-mono">
-                                <span>{uploadSpeed}</span>
-                                <span>•</span>
-                                <span>{uploadEta}</span>
+                        {/* Detailed Stats */}
+                        <div className="w-full glass-morphism p-5 rounded-2xl border border-white/10 bg-slate-800/40">
+                            <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/10">
+                                <h4 className="font-bold text-white">Uploading File...</h4>
+                                <Activity size={16} className="text-blue-400 animate-pulse" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 text-center">
+                                <div>
+                                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Speed</p>
+                                    <p className="font-mono text-white font-bold">{uploadSpeed || '0 KB/s'}</p>
+                                </div>
+                                <div className="border-l border-white/10">
+                                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Time Left</p>
+                                    <p className="font-mono text-white font-bold">{uploadEta || '--'}</p>
+                                </div>
                             </div>
                         </div>
 
-                        <Button variant="outline" className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300" onClick={() => uploadXhrRef.current?.abort()}>
+                        <Button variant="outline" className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors" onClick={() => uploadXhrRef.current?.abort()}>
                             Cancel Upload
                         </Button>
                     </div>
