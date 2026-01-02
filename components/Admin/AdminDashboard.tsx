@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { r2Client, R2_BUCKET, R2_PUBLIC_URL } from '../../lib/r2';
 import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
@@ -168,6 +168,124 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
         setTimeout(() => setFeedback(null), 4000);
     };
 
+    // Memoize fetchStats to avoid stale closures if used in effects
+    const fetchStats = useCallback(async () => {
+        try {
+            // 1. Total Counts
+            const { count: visitors } = await supabase.from('site_visits').select('*', { count: 'exact', head: true });
+            const { count: views } = await supabase.from('project_views').select('*', { count: 'exact', head: true });
+
+            // 2. Trend Data (Last 7 Days)
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            sevenDaysAgo.setHours(0, 0, 0, 0);
+
+            const { data: visitsData } = await supabase
+                .from('site_visits')
+                .select('visitor_id, created_at, user_agent, page, os, country, city')
+                .gte('created_at', sevenDaysAgo.toISOString())
+                .order('created_at', { ascending: false });
+
+            // Process Visits
+            const uniqueSet = new Set();
+            let todayCount = 0;
+
+            // Normalize Today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Init Map (Key: local date string YYYY-MM-DD)
+            const daysMap = new Map<string, { count: number, label: string }>();
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                const key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+                daysMap.set(key, {
+                    count: 0,
+                    label: d.toLocaleDateString('en-US', { weekday: 'short' })
+                });
+            }
+
+            visitsData?.forEach(v => {
+                uniqueSet.add(v.visitor_id);
+
+                // Normalize Visit Date
+                const vDate = new Date(v.created_at);
+                const key = vDate.getFullYear() + '-' + (vDate.getMonth() + 1) + '-' + vDate.getDate();
+
+                // Check for "Today" match
+                const tDate = new Date();
+                const tKey = tDate.getFullYear() + '-' + (tDate.getMonth() + 1) + '-' + tDate.getDate();
+                if (key === tKey) todayCount++;
+
+                const entry = daysMap.get(key);
+                if (entry) {
+                    entry.count++;
+                }
+            });
+
+            // Format Chart Data
+            const chartData = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                const key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+                const entry = daysMap.get(key);
+                if (entry) {
+                    chartData.push({
+                        day: entry.label,
+                        count: entry.count,
+                        height: 0
+                    });
+                }
+            }
+            chartData.reverse();
+
+            const maxVal = Math.max(...chartData.map(d => d.count), 1);
+            chartData.forEach(d => d.height = Math.round((d.count / maxVal) * 100));
+
+            // Process Recent Visits
+            const recentVisits = visitsData?.slice(0, 50).map(v => {
+                let device = 'Desktop';
+                if (v.user_agent) {
+                    if (/mobile/i.test(v.user_agent)) device = 'Mobile';
+                    else if (/tablet|ipad/i.test(v.user_agent)) device = 'Tablet';
+                }
+
+                return {
+                    id: v.visitor_id,
+                    date: new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }),
+                    device,
+                    os: v.os || 'Unknown',
+                    location: v.city ? `${v.city}, ${v.country}` : (v.country || 'Unknown'),
+                    page: v.page || '/'
+                };
+            }) || [];
+
+            // 3. Top Projects
+            const { data: projectStats } = await supabase
+                .from('projects')
+                .select('id, title, thumbnail_url, project_views(count)');
+
+            const topProjects = projectStats?.map((p: any) => ({
+                ...p,
+                views: p.project_views?.[0]?.count || 0
+            })).sort((a: any, b: any) => b.views - a.views).slice(0, 5) || [];
+
+            setStats({
+                visitors: visitors || 0,
+                views: views || 0,
+                uniqueVisitors: uniqueSet.size,
+                todayVisits: todayCount,
+                chartData,
+                topProjects,
+                recentVisits
+            });
+        } catch (e) {
+            console.error('Error fetching stats:', e);
+        }
+    }, []);
+
     useEffect(() => {
         // Initial fetch
         fetchProjects();
@@ -178,20 +296,25 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
         if (window.innerWidth < 1024) setNavVisible(false);
 
         // Realtime Subscription
+        console.log("Setting up Realtime Subscription for Analytics...");
         const channel = supabase
-            .channel('admin-dashboard')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'site_visits' }, () => {
+            .channel('dashboard-realtime-v3') // Unique channel ID
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'site_visits' }, (payload) => {
+                console.log('Realtime update (site_visits):', payload);
                 fetchStats();
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_views' }, () => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_views' }, (payload) => {
+                console.log('Realtime update (project_views):', payload);
                 fetchStats();
             })
-            .subscribe();
+            .subscribe((status) => {
+                console.log("Subscription status:", status);
+            });
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [fetchStats]);
 
     const fetchProjects = async () => {
         const { data, error } = await supabase.from('projects').select('*').order('sort_order', { ascending: true });
@@ -205,7 +328,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
         else setSkills(data || []);
     };
 
-    const fetchStats = async () => {
+    const fetchStatsOld = async () => {
         try {
             // 1. Total Counts
             const { count: visitors } = await supabase.from('site_visits').select('*', { count: 'exact', head: true });
@@ -848,7 +971,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                             {/* Recent Visitors Table */}
                             <div className="bg-slate-800/40 p-6 rounded-3xl border border-white/5 mt-6">
                                 <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><Globe size={20} className="text-green-500" /> Recent Visitors</h3>
-                                <div className="overflow-x-auto">
+                                <div className="overflow-x-auto max-h-96 overflow-y-auto custom-scrollbar">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-white/5">
