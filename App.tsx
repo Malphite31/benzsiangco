@@ -37,6 +37,9 @@ function App() {
 
     // Track Site Visit
     const logVisit = async () => {
+      // Prevent duplicate logging on reload (Session based)
+      if (sessionStorage.getItem('session_visit_logged')) return;
+
       let visitorId = localStorage.getItem('v_id');
       if (!visitorId) {
         visitorId = crypto.randomUUID();
@@ -97,6 +100,8 @@ function App() {
           region: geo.region || 'Unknown',
           ip: geo.ip || 'Unknown'
         }]);
+
+        sessionStorage.setItem('session_visit_logged', 'true');
       } catch (e) {
         console.warn('Analytics error', e);
       }
