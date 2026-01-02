@@ -94,7 +94,7 @@ export const Projects: React.FC = () => {
                 onClick={() => setActiveProject(project)}
               >
                 <div className="absolute inset-0 z-0 transition-transform duration-1000 group-hover:scale-110">
-                  <img src={(project as any).thumbnail_url || project.thumbnail} alt={project.title} className="w-full h-full object-cover" />
+                  <img src={encodeURI((project as any).thumbnail_url || project.thumbnail)} alt={project.title} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent group-hover:via-slate-900/40" />
                 </div>
 
@@ -144,13 +144,20 @@ export const Projects: React.FC = () => {
             {/* Video Container */}
             <div className="relative w-full flex-1 lg:flex-none lg:w-1/2 lg:h-auto aspect-[9/16] lg:aspect-video lg:rounded-[2.5rem] overflow-hidden bg-black shadow-2xl flex-shrink-0">
               {(() => {
-                const url = (activeProject as any).video_url || activeProject.videoUrl;
-                const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+                const rawUrl = (activeProject as any).video_url || activeProject.videoUrl;
+                if (!rawUrl) return null;
+
+                const isYoutube = rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be');
 
                 if (isYoutube) {
+                  // Extract ID safely
+                  let videoId = '';
+                  if (rawUrl.includes('youtu.be')) videoId = rawUrl.split('/').pop()?.split('?')[0] || '';
+                  else if (rawUrl.includes('v=')) videoId = rawUrl.split('v=')[1]?.split('&')[0] || '';
+
                   return (
                     <iframe
-                      src={`https://www.youtube.com/embed/${url.split('v=')[1]}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0`}
+                      src={`https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&showinfo=0`}
                       className="absolute inset-0 w-full h-full"
                       title={activeProject.title}
                       allowFullScreen
@@ -159,7 +166,7 @@ export const Projects: React.FC = () => {
                 } else {
                   return (
                     <video
-                      src={url}
+                      src={encodeURI(rawUrl)}
                       className="absolute inset-0 w-full h-full object-contain"
                       controls
                       autoPlay

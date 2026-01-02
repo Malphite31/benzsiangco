@@ -283,7 +283,7 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
         setUploadEta('...');
 
         try {
-            const fileName = `${Date.now()} -${file.name.replace(/[^a-zA-Z0-9.-]/g, '')} `;
+            const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
 
             const fileType = file.type || 'application/octet-stream';
 
@@ -1353,12 +1353,13 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                         {/* Liquid Bucket Container */}
                         <div className="relative w-32 h-40 bg-white/5 rounded-2xl border-2 border-white/20 overflow-hidden shadow-[0_0_40px_rgba(59,130,246,0.2)] backdrop-blur-sm">
                             {/* Filling Liquid Background - Darker */}
-                            <div className="absolute left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-blue-600 rounded-[35%] animate-[wave_6s_linear_infinite]"
+                            {/* Filling Liquid Background - Darker */}
+                            <div className="absolute left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-blue-600 rounded-[43%] animate-[wave_6s_linear_infinite]"
                                 style={{ top: `${100 - uploadProgress}%`, transition: 'top 0.3s ease-out' }}>
                             </div>
 
                             {/* Filling Liquid Foreground - Lighter */}
-                            <div className="absolute left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-blue-500/90 rounded-[40%] animate-[wave_4s_linear_infinite]"
+                            <div className="absolute left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-blue-500/90 rounded-[45%] animate-[wave_4s_linear_infinite]"
                                 style={{ top: `${100 - uploadProgress - 5}%`, transition: 'top 0.3s ease-out' }}>
                             </div>
 
