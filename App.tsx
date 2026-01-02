@@ -37,7 +37,6 @@ function App() {
 
     // Track Site Visit
     const logVisit = async () => {
-      // Simple visitor tracking
       let visitorId = localStorage.getItem('v_id');
       if (!visitorId) {
         visitorId = crypto.randomUUID();
@@ -45,13 +44,38 @@ function App() {
       }
 
       try {
-        // Optional: Get rough location from public IP API (client-side only demo) or just log
-        // For now, simpler is better to avoid blocking
         const { supabase } = await import('./lib/supabase');
+
+        // 1. Get Basic Info
+        const ua = navigator.userAgent;
+        let os = 'Unknown';
+        if (ua.indexOf("Win") !== -1) os = "Windows";
+        else if (ua.indexOf("Mac") !== -1) os = "MacOS";
+        else if (ua.indexOf("Linux") !== -1) os = "Linux";
+        else if (ua.indexOf("Android") !== -1) os = "Android";
+        else if (ua.indexOf("like Mac") !== -1) os = "iOS";
+
+        // 2. Get Geolocation (Best effort, non-blocking)
+        let geo: any = {};
+        try {
+          const res = await fetch('https://ipwho.is/');
+          if (res.ok) {
+            geo = await res.json();
+          }
+        } catch (e) {
+          console.warn('Geo fetch failed', e);
+        }
+
+        // 3. Log to DB
         await supabase.from('site_visits').insert([{
           visitor_id: visitorId,
           page: window.location.pathname,
-          user_agent: navigator.userAgent
+          user_agent: ua,
+          os: os,
+          country: geo.country || 'Unknown',
+          city: geo.city || 'Unknown',
+          region: geo.region || 'Unknown',
+          ip: geo.ip || 'Unknown'
         }]);
       } catch (e) {
         console.warn('Analytics error', e);
@@ -59,6 +83,16 @@ function App() {
     };
 
     logVisit();
+
+    // Console Signature
+    const styleTitle = 'color: #3b82f6; font-size: 40px; font-weight: bold; text-shadow: 2px 2px 0px #000; font-family: "Inter", sans-serif;';
+    const styleSubtitle = 'color: #94a3b8; font-size: 14px; font-family: "Inter", sans-serif; margin-bottom: 5px;';
+    const styleWarning = 'background: #ef4444; color: white; padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 12px;';
+
+    console.log('%cBenz Siangco', styleTitle);
+    console.log('%cCreative Editor & VibeCode Developer', styleSubtitle);
+    console.log('%c⚠️ STOP! If someone told you to paste code here, you are likely being scammed.', styleWarning);
+
 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { r2Client, R2_BUCKET, R2_PUBLIC_URL } from '../../lib/r2';
 import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { X, Upload, Save, Trash2, Plus, GripVertical, LogOut, Image, Video, FileText, Users, TrendingUp, BarChart2, Activity, Edit, UploadCloud, User, Share2, Mail } from 'lucide-react';
+import { X, Upload, Save, Trash2, Plus, GripVertical, LogOut, Image, Video, FileText, Users, TrendingUp, BarChart2, Activity, Edit, UploadCloud, User, Share2, Mail, Globe, Smartphone, Tablet, Monitor, MapPin, Cpu } from 'lucide-react';
 import { Button } from '../Button';
 import { PORTFOLIO_DATA } from '../../constants'; // Assuming constants.ts exists and contains PORTFOLIO_DATA
 
@@ -40,7 +40,8 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
         uniqueVisitors: 0,
         todayVisits: 0,
         chartData: [] as { day: string, count: number, height: number }[],
-        topProjects: [] as any[]
+        topProjects: [] as any[],
+        recentVisits: [] as any[] // Added recent visits
     });
 
     // Edit State
@@ -201,8 +202,9 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
             const { data: visitsData } = await supabase
                 .from('site_visits')
-                .select('visitor_id, created_at')
-                .gte('created_at', sevenDaysAgo.toISOString());
+                .select('visitor_id, created_at, user_agent, page, os, country, city')
+                .gte('created_at', sevenDaysAgo.toISOString())
+                .order('created_at', { ascending: false });
 
             // Process Visits
             const uniqueSet = new Set();
@@ -233,6 +235,24 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                 height: Math.round((count / maxVal) * 100)
             }));
 
+            // Process Recent Visits
+            const recentVisits = visitsData?.slice(0, 10).map(v => {
+                let device = 'Desktop';
+                if (v.user_agent) {
+                    if (/mobile/i.test(v.user_agent)) device = 'Mobile';
+                    else if (/tablet|ipad/i.test(v.user_agent)) device = 'Tablet';
+                }
+
+                return {
+                    id: v.visitor_id,
+                    date: new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }),
+                    device,
+                    os: v.os || 'Unknown',
+                    location: v.city ? `${v.city}, ${v.country}` : (v.country || 'Unknown'),
+                    page: v.page || '/'
+                };
+            }) || [];
+
             // 3. Top Projects
             const { data: projectStats } = await supabase
                 .from('projects')
@@ -249,7 +269,8 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                 uniqueVisitors: uniqueSet.size,
                 todayVisits: todayCount,
                 chartData,
-                topProjects
+                topProjects,
+                recentVisits
             });
         } catch (e) {
             console.error('Error fetching stats:', e);
@@ -630,6 +651,27 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
         }
     };
 
+    const confirmResetAnalytics = () => {
+        setConfirmDialog({
+            message: 'Are you sure you want to reset all analytics data? This will delete all visitor logs and project view counts permanently.',
+            onConfirm: async () => {
+                try {
+                    const { error: vError } = await supabase.from('site_visits').delete().neq('id', 0);
+                    const { error: pError } = await supabase.from('project_views').delete().neq('id', 0);
+
+                    if (vError) throw vError;
+                    if (pError) throw pError;
+
+                    fetchStats();
+                    showFeedback('success', 'Analytics data reset.');
+                } catch (e: any) {
+                    showFeedback('error', 'Failed to reset: ' + e.message);
+                }
+                setConfirmDialog(null);
+            }
+        });
+    };
+
     return (
         <div className="fixed inset-0 z-[100] bg-[#020617] text-white flex animate-fade-in overflow-hidden font-sans">
             {/* Sidebar */}
@@ -676,6 +718,17 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
                     {activeTab === 'overview' && (
                         <div className="max-w-6xl mx-auto space-y-6">
+                            <div className="flex justify-end">
+                                <Button
+                                    variant="outline"
+                                    onClick={confirmResetAnalytics}
+                                    className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400 text-xs h-8 px-3"
+                                    icon={<Trash2 size={12} />}
+                                >
+                                    Reset Analytics
+                                </Button>
+                            </div>
+
                             {/* Stats Grid */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="bg-slate-800/40 p-5 rounded-2xl border border-white/5 flex flex-col">
@@ -756,6 +809,51 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                                         ))}
                                         {stats.topProjects.length === 0 && <p className="text-slate-500 text-center py-4">No project data yet.</p>}
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Recent Visitors Table */}
+                            <div className="bg-slate-800/40 p-6 rounded-3xl border border-white/5 mt-6">
+                                <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><Globe size={20} className="text-green-500" /> Recent Visitors</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-white/5">
+                                                <th className="pb-3 pl-2">Time</th>
+                                                <th className="pb-3">Device</th>
+                                                <th className="pb-3">OS</th>
+                                                <th className="pb-3">Location</th>
+                                                <th className="pb-3">Page</th>
+                                                <th className="pb-3 text-right">Visitor ID</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="text-sm">
+                                            {stats.recentVisits?.map((v: any, i: number) => (
+                                                <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                                                    <td className="py-3 pl-2 text-slate-300 font-mono text-xs">{v.date}</td>
+                                                    <td className="py-3">
+                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${v.device === 'Mobile' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : v.device === 'Tablet' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+                                                            {v.device === 'Mobile' ? <Smartphone size={12} /> : v.device === 'Tablet' ? <Tablet size={12} /> : <Monitor size={12} />}
+                                                            {v.device}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 text-slate-300 text-xs font-bold">
+                                                        <div className="flex items-center gap-2">
+                                                            <Cpu size={14} className="text-slate-500" /> {v.os}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 text-slate-300 text-xs">
+                                                        <div className="flex items-center gap-2">
+                                                            <MapPin size={14} className="text-red-500" /> {v.location}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 text-slate-300 truncate max-w-[150px]">{v.page}</td>
+                                                    <td className="py-3 text-right text-slate-500 font-mono text-xs">{v.id.substring(0, 8)}...</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {(!stats.recentVisits || stats.recentVisits.length === 0) && <p className="text-slate-500 text-center py-4">No recent visits.</p>}
                                 </div>
                             </div>
                         </div>
@@ -866,8 +964,8 @@ export const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) =
                                                                 key={i}
                                                                 onClick={() => setProfileData({ ...profileData, about_headline_highlight: word })}
                                                                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${profileData.about_headline_highlight === word
-                                                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 ring-1 ring-blue-500'
-                                                                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
+                                                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 ring-1 ring-blue-500'
+                                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
                                                                     }`}
                                                             >
                                                                 {word}
