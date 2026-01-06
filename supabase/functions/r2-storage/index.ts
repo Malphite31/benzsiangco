@@ -1,7 +1,5 @@
 
-// Using npm specifiers which are now supported and often more stable than esm.sh for AWS SDK
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3.400.0"
-import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.400.0"
+import { AwsClient } from "https://esm.sh/aws4fetch@1.0.17"
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -9,7 +7,7 @@ const corsHeaders = {
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-console.log("Function initializing...")
+console.log("R2 Storage Function (aws4fetch) initializing...")
 
 Deno.serve(async (req) => {
     // Handle CORS
@@ -25,32 +23,39 @@ Deno.serve(async (req) => {
         const R2_SECRET_ACCESS_KEY = Deno.env.get('R2_SECRET_ACCESS_KEY')
         const R2_BUCKET_NAME = Deno.env.get('R2_BUCKET_NAME')
 
-        if (!R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
+        if (!R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_ACCOUNT_ID || !R2_BUCKET_NAME) {
             throw new Error('Missing R2 Credentials')
         }
 
-        const r2 = new S3Client({
+        const aws = new AwsClient({
+            accessKeyId: R2_ACCESS_KEY_ID,
+            secretAccessKey: R2_SECRET_ACCESS_KEY,
+            service: 's3',
             region: 'auto',
-            endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-            credentials: {
-                accessKeyId: R2_ACCESS_KEY_ID,
-                secretAccessKey: R2_SECRET_ACCESS_KEY,
-            },
         })
 
         if (action === 'upload-sign') {
-            const command = new PutObjectCommand({
-                Bucket: R2_BUCKET_NAME,
-                Key: key,
-                ContentType: contentType,
+            // Using Path-Style access: https://<accountid>.r2.cloudflarestorage.com/<bucket>/<key>
+            const url = new URL(`https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${key}`)
+
+            // Generate Presigned URL
+            const signed = await aws.sign(new Request(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': contentType }
+            }), {
+                aws: { signQuery: true }
             })
-            const signedUrl = await getSignedUrl(r2, command, { expiresIn: 600 })
-            return new Response(JSON.stringify({ url: signedUrl }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+            return new Response(JSON.stringify({ url: signed.url }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
         if (action === 'delete') {
-            const command = new DeleteObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key })
-            await r2.send(command)
+            const url = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${key}`
+            const res = await aws.fetch(url, { method: 'DELETE' })
+
+            // R2 usually returns 204 No Content for deletes
+            if (res.status >= 300) throw new Error(`R2 Delete failed: ${res.statusText}`)
+
             return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
