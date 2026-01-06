@@ -1,5 +1,7 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "https://esm.sh/@aws-sdk/client-s3@3.370.0?target=deno"
-import { getSignedUrl } from "https://esm.sh/@aws-sdk/s3-request-presigner@3.370.0?target=deno"
+
+// Using npm specifiers which are now supported and often more stable than esm.sh for AWS SDK
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3.400.0"
+import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.400.0"
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -18,15 +20,13 @@ Deno.serve(async (req) => {
     try {
         const { action, key, contentType } = await req.json()
 
-        // Initialize R2 Client with Environment Variables
         const R2_ACCOUNT_ID = Deno.env.get('R2_ACCOUNT_ID')
         const R2_ACCESS_KEY_ID = Deno.env.get('R2_ACCESS_KEY_ID')
         const R2_SECRET_ACCESS_KEY = Deno.env.get('R2_SECRET_ACCESS_KEY')
         const R2_BUCKET_NAME = Deno.env.get('R2_BUCKET_NAME')
 
         if (!R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
-            console.error('Missing R2 Credentials')
-            throw new Error('Missing R2 Credentials on Server')
+            throw new Error('Missing R2 Credentials')
         }
 
         const r2 = new S3Client({
@@ -39,45 +39,27 @@ Deno.serve(async (req) => {
         })
 
         if (action === 'upload-sign') {
-            if (!key || !contentType) throw new Error('Missing key or contentType')
-
             const command = new PutObjectCommand({
                 Bucket: R2_BUCKET_NAME,
                 Key: key,
                 ContentType: contentType,
             })
-
-            // Generate Presigned URL (valid for 10 minutes)
             const signedUrl = await getSignedUrl(r2, command, { expiresIn: 600 })
-
-            return new Response(
-                JSON.stringify({ url: signedUrl }),
-                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
+            return new Response(JSON.stringify({ url: signedUrl }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
         if (action === 'delete') {
-            if (!key) throw new Error('Missing key')
-
-            const command = new DeleteObjectCommand({
-                Bucket: R2_BUCKET_NAME,
-                Key: key,
-            })
-
+            const command = new DeleteObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key })
             await r2.send(command)
-
-            return new Response(
-                JSON.stringify({ success: true }),
-                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
+            return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
         throw new Error('Invalid Action')
 
     } catch (error) {
-        console.error('Edge Function Error:', error)
+        console.error(error)
         return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: error.message || 'Unknown error' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
     }
