@@ -273,3 +273,7 @@ section {
     transform: rotate(360deg);
   }
 }
+
+.animate-wave {
+    animation: wave 6s linear infinite;
+}
