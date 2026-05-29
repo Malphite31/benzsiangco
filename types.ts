@@ -14,12 +14,6 @@ export interface Skill {
   category: 'Frontend' | 'Backend' | 'Design' | 'Tools';
 }
 
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'model';
-  text: string;
-  timestamp: Date;
-}
 
 export enum Section {
   HERO = 'hero',

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 export const MouseEffects: React.FC = () => {
   const [clicks, setClicks] = useState<{id: number, x: number, y: number}[]>([]);
+  const [isHovered, setIsHovered] = useState(false);
   const cursorRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
 
@@ -25,6 +26,22 @@ export const MouseEffects: React.FC = () => {
       }
     };
 
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+      
+      const isInteractive = 
+        target.tagName === 'A' || 
+        target.tagName === 'BUTTON' || 
+        target.closest('a') || 
+        target.closest('button') || 
+        target.closest('.project-card') ||
+        target.closest('.skill-card') ||
+        target.closest('[role="button"]');
+
+      setIsHovered(!!isInteractive);
+    };
+
     const loop = () => {
       // Linear interpolation for the ring (lag effect)
       ringX += (mouseX - ringX) * 0.15;
@@ -37,10 +54,12 @@ export const MouseEffects: React.FC = () => {
     };
     
     window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseover', handleMouseOver);
     const frameId = requestAnimationFrame(loop);
 
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseover', handleMouseOver);
       cancelAnimationFrame(frameId);
     };
   }, []);
@@ -67,11 +86,15 @@ export const MouseEffects: React.FC = () => {
       <div className="hidden md:block">
           <div 
             ref={cursorRef} 
-            className="absolute top-0 left-0 w-3 h-3 bg-blue-400 rounded-full -ml-1.5 -mt-1.5 shadow-[0_0_10px_rgba(96,165,250,0.8)] mix-blend-screen will-change-transform backdrop-blur-sm" 
+            className={`absolute top-0 left-0 w-3 h-3 bg-blue-400 rounded-full -ml-1.5 -mt-1.5 shadow-[0_0_10px_rgba(96,165,250,0.8)] mix-blend-screen will-change-transform backdrop-blur-sm transition-all duration-300 ${
+              isHovered ? 'cursor-hover-active' : ''
+            }`} 
           />
           <div 
             ref={ringRef} 
-            className="absolute top-0 left-0 w-10 h-10 border border-blue-400/30 rounded-full -ml-5 -mt-5 will-change-transform mix-blend-screen" 
+            className={`absolute top-0 left-0 w-10 h-10 border border-blue-400/30 rounded-full -ml-5 -mt-5 will-change-transform mix-blend-screen transition-all duration-300 ${
+              isHovered ? 'ring-hover-active' : ''
+            }`} 
           />
       </div>
 

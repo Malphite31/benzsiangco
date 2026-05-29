@@ -54,10 +54,36 @@ export const Skills: React.FC = () => {
     }
   };
 
+  // Interactive 3D Card Tilt Functionality
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const xc = rect.width / 2;
+    const yc = rect.height / 2;
+    
+    // Tilt limit: 15 degrees max
+    const angleX = (yc - y) / 6;
+    const angleY = (x - xc) / 6;
+    
+    card.style.setProperty('--rx', `${angleX}deg`);
+    card.style.setProperty('--ry', `${angleY}deg`);
+    card.style.setProperty('--scale', `1.03`);
+  };
+
+  const handleCardMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    card.style.setProperty('--rx', `0deg`);
+    card.style.setProperty('--ry', `0deg`);
+    card.style.setProperty('--scale', `1`);
+  };
+
   return (
     <section id="skills" className="relative py-16 md:py-24 bg-[#020617] overflow-hidden">
       {/* Ambient Background */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none animate-drift-slow" />
 
       <div className="container mx-auto px-6 relative z-10" ref={containerRef}>
 
@@ -70,7 +96,7 @@ export const Skills: React.FC = () => {
 
           <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tighter mb-4 leading-[0.9]">
             TECHNICAL <br />
-            <span className="instrument-serif italic font-normal text-blue-500">Proficiency</span>
+            <span className="instrument-serif italic font-normal text-sweep-glow">Proficiency</span>
           </h2>
 
           <p className="max-w-md text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
@@ -79,18 +105,20 @@ export const Skills: React.FC = () => {
         </div>
 
         {/* Skills Grid - Balanced 3-Column Layout */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5 max-w-5xl mx-auto">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5 max-w-5xl mx-auto tilt-container">
           {SKILLS.map((skill) => {
             const config = getToolConfig(skill.name);
             return (
               <div
                 key={skill.name}
-                className="skill-card group relative p-5 md:p-6 rounded-[1.5rem] bg-[#0f172a]/40 border border-white/5 hover:border-white/10 transition-all duration-700 opacity-0 hover:-translate-y-2"
+                className="skill-card group relative p-5 md:p-6 rounded-[1.5rem] bg-[#0f172a]/40 border border-white/5 hover:border-white/10 transition-all duration-700 opacity-0 will-change-transform tilt-element"
+                onMouseMove={handleCardMouseMove}
+                onMouseLeave={handleCardMouseLeave}
               >
                 {/* Hover Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[1.5rem]" />
 
-                <div className="relative z-10 flex flex-col items-center text-center">
+                <div className="relative z-10 flex flex-col items-center text-center tilt-inner">
                   {/* Icon Container - Smaller */}
                   <div className={`w-12 h-12 md:w-16 md:h-16 mb-4 rounded-xl bg-[#020617] border border-white/10 flex items-center justify-center text-xl md:text-2xl font-bold ${config.color} ${config.glow} shadow-2xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}>
                     {config.icon}

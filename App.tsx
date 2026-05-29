@@ -8,9 +8,12 @@ import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
 import { MouseEffects } from './components/MouseEffects';
 import { AdminDashboard } from './components/Admin/AdminDashboard'; // Import the dashboard
+import { Preloader } from './components/Preloader';
+import { ScrollIndicator } from './components/ScrollIndicator';
 
 function App() {
   const [showAdmin, setShowAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let buffer = '';
@@ -110,7 +113,6 @@ function App() {
     logVisit();
 
     // Console Signature
-    // Console Signature
     const styleTitle = 'color: #e0f2fe; font-size: 60px; font-weight: 900; font-family: sans-serif; text-shadow: 1px 1px 0 #0ea5e9, 2px 2px 0 #0284c7, 3px 3px 0 #0369a1, 4px 4px 0 #075985, 5px 5px 0 #0c4a6e; margin-bottom: 10px;';
     const styleSubtitle = 'color: #94a3b8; font-size: 14px; font-family: "Courier New", monospace; letter-spacing: 2px; padding: 4px 0; font-weight: bold;';
     const styleWarning = 'background: #0f172a; color: #fbbf24; border: 1px solid #fbbf24; padding: 12px; border-radius: 4px; font-family: sans-serif; font-size: 12px; margin-top: 16px;';
@@ -120,26 +122,34 @@ function App() {
     console.log('%cCREATIVE EDITOR & FULL STACK DEVELOPER', styleSubtitle);
     console.log('%c⚠️ NOTE: This console is intended for developers. Pasting unknown code here may compromise your data.', styleWarning);
 
-
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
-    <div className="bg-[#020617] text-slate-200">
-      <Header />
-      <div className="fixed top-0 left-0 w-full h-1 z-[9999]" onDoubleClick={() => setShowAdmin(true)}></div> {/* Hidden trigger just in case */}
+    <>
+      {isLoading ? (
+        <Preloader onComplete={() => setIsLoading(false)} />
+      ) : (
+        <div className="bg-[#020617] text-slate-200 min-h-screen animate-page-fade-in">
+          <div className="film-grain-overlay" />
+          <ScrollIndicator />
+          
+          <Header />
+          <div className="fixed top-0 left-0 w-full h-1 z-[9999]" onDoubleClick={() => setShowAdmin(true)}></div> {/* Hidden trigger just in case */}
 
-      {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
+          {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
 
-      <main>
-        <Hero />
-        <About />
-        <Projects />
-        <Skills />
-        <Contact />
-      </main>
-      <Footer />
-    </div>
+          <main>
+            <Hero />
+            <About />
+            <Projects />
+            <Skills />
+            <Contact />
+          </main>
+          <Footer />
+        </div>
+      )}
+    </>
   );
 }
 

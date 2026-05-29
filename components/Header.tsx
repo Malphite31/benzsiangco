@@ -24,9 +24,16 @@ export const Header: React.FC = () => {
     <header className="fixed top-2 md:top-6 left-0 right-0 z-50 flex justify-center px-4 md:px-6 pointer-events-none">
       <nav className={`flex items-center justify-between md:justify-start gap-4 md:gap-8 px-5 py-2 md:py-3 rounded-full border border-white/10 transition-all duration-700 w-full max-w-4xl pointer-events-auto ${isScrolled ? 'bg-slate-900/90 backdrop-blur-2xl shadow-2xl scale-[0.98]' : 'bg-slate-900/20 backdrop-blur-md'
         }`}>
-        <a href="#hero" className="flex items-center md:pr-6 md:border-r border-white/10 shrink-0">
+        <a href="#hero" className="flex items-center md:pr-6 md:border-r border-white/10 shrink-0 gap-3">
           <div className="w-20 md:w-32 h-5 md:h-8 flex items-center justify-center transition-transform hover:scale-105 active:scale-95">
             <img src="/benzsiangco.png" alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          {/* Audio Wave Visualizer */}
+          <div className="flex items-end gap-[2px] h-3.5 w-4 pb-[1px]" title="Audio Timeline Active">
+            <div className="w-[2px] h-3 bg-blue-500 rounded-full audio-bar" style={{ animationDelay: '0.1s' }} />
+            <div className="w-[2px] h-3 bg-blue-400 rounded-full audio-bar" style={{ animationDelay: '0.4s' }} />
+            <div className="w-[2px] h-3 bg-blue-500 rounded-full audio-bar" style={{ animationDelay: '0.2s' }} />
+            <div className="w-[2px] h-3 bg-cyan-400 rounded-full audio-bar" style={{ animationDelay: '0.6s' }} />
           </div>
         </a>
 

@@ -102,7 +102,7 @@ export const About: React.FC = () => {
                       <React.Fragment key={i}>
                         {part}
                         {i < arr.length - 1 && (
-                          <span className="instrument-serif text-blue-500 italic font-normal normal-case block sm:inline">{profile.about_headline_highlight}</span>
+                          <span className="instrument-serif italic font-normal normal-case block sm:inline text-sweep-glow">{profile.about_headline_highlight}</span>
                         )}
                       </React.Fragment>
                     ))

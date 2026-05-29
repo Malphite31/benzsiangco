@@ -22,6 +22,41 @@ const TextReveal = ({ text, mode = 'char', className = '', delay = 0, speed = 0.
   );
 };
 
+// Proximity-Based Magnetic Button Wrapper Component
+const MagneticButton: React.FC<{ children: React.ReactNode; className?: string; onClick?: () => void; variant?: 'primary' | 'outline'; icon?: React.ReactNode }> = ({ children, className, onClick, variant, icon }) => {
+  const btnRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const el = btnRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    
+    // Magnetic pull: offset element by 35% of vector distance
+    el.style.transform = `translate3d(${x * 0.35}px, ${y * 0.35}px, 0)`;
+  };
+
+  const handleMouseLeave = () => {
+    const el = btnRef.current;
+    if (!el) return;
+    el.style.transform = `translate3d(0, 0, 0)`;
+  };
+
+  return (
+    <div 
+      ref={btnRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="magnetic-element w-full sm:w-auto"
+    >
+      <Button variant={variant} className={className} onClick={onClick} icon={icon}>
+        {children}
+      </Button>
+    </div>
+  );
+};
+
 export const Hero: React.FC = () => {
   const paralaxRef = useRef<HTMLDivElement>(null);
 
@@ -45,11 +80,11 @@ export const Hero: React.FC = () => {
           WebkitMaskImage: 'linear-gradient(to bottom, black 20%, transparent 95%), radial-gradient(circle at center, black 40%, transparent 100%)',
           WebkitMaskComposite: 'destination-in'
         }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] md:w-[1500px] h-[800px] md:h-[1400px] bg-blue-600/[0.15] rounded-full blur-[120px] md:blur-[180px] pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] md:w-[1500px] h-[800px] md:h-[1400px] bg-blue-600/[0.15] rounded-full blur-[120px] md:blur-[180px] pointer-events-none animate-drift-slow"></div>
 
-        {/* Corner Ambient Glows - Boosted Visibility */}
-        <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-blue-600/[0.25] rounded-full blur-[140px] pointer-events-none mix-blend-screen"></div>
-        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-500/[0.25] rounded-full blur-[140px] pointer-events-none mix-blend-screen"></div>
+        {/* Corner Ambient Glows - Upgraded to drifting animations */}
+        <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-blue-600/[0.25] rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-drift-slow"></div>
+        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-500/[0.25] rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-drift-reverse"></div>
       </div>
 
       <div className="container mx-auto px-6 relative z-10 flex flex-col items-center text-center">
@@ -63,8 +98,13 @@ export const Hero: React.FC = () => {
         <h1 className="text-[3.2rem] sm:text-6xl md:text-[7.5rem] lg:text-[100px] font-bold tracking-tight mb-8 md:mb-10 leading-[0.9] text-white group pointer-events-none">
           <TextReveal text="Editing Videos" delay={0.1} /> <br className="hidden md:block" />
           <TextReveal text="that Go " delay={0.5} />
-          <span className="instrument-serif text-blue-500 italic font-normal normal-case group-hover:text-blue-400 transition-colors duration-700">
-            <TextReveal text="Viral" delay={0.8} />
+          <span 
+            className="inline-block opacity-0 animate-apple-reveal"
+            style={{ animationDelay: '0.8s' }}
+          >
+            <span className="instrument-serif italic font-normal normal-case text-sweep-glow">
+              Viral
+            </span>
           </span>
         </h1>
 
@@ -77,23 +117,21 @@ export const Hero: React.FC = () => {
           <TextReveal text=" through high-end cinematic editing." mode="word" delay={1.6} speed={0.05} />
         </p>
 
-        {/* Action Buttons - Size Fixed */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-8 mb-20 md:mb-24 w-full sm:w-auto px-8 sm:px-0 opacity-0 animate-apple-reveal" style={{ animationDelay: '1.8s' }}>
-          <Button
+        {/* Magnetic Proximity Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-8 mb-20 md:mb-24 w-full sm:w-auto px-8 sm:px-0 opacity-0 animate-apple-reveal" style={{ animationDelay: '1.8s' }}>
+          <MagneticButton
             variant="primary"
-            className="w-full sm:w-auto"
             onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
           >
             START YOUR PROJECT
-          </Button>
-          <Button
+          </MagneticButton>
+          <MagneticButton
             variant="outline"
-            className="w-full sm:w-auto"
             icon={<PlayCircle size={18} className="text-blue-500" />}
             onClick={() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })}
           >
             EXPLORE WORKS
-          </Button>
+          </MagneticButton>
         </div>
 
         {/* Subtle Brand Elements */}
